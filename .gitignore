@@ -1,0 +1,9 @@
+/dist/
+/build/
+/*.egg-info/
+__pycache__
+/GNUmakefile
+/.*_localrc
+/tags
+*.blend1
+*.blend
