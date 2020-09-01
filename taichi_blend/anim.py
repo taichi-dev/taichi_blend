@@ -37,8 +37,8 @@ def add_animation(iterator):
 
 
 class AnimUpdate:
-    def __init__(self, callback):
-        self.callback = callback
+    def __init__(self, callback=None):
+        self.callback = callback if callback is not None else lambda: None
 
     def __add__(self, other):
         def callback():
