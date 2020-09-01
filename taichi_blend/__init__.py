@@ -9,18 +9,6 @@ from .wrapper import *
 
 
 
-
-## NumPy helpers
-
-
-__all__ = '''
-np
-bpy
-from_numpy
-to_numpy
-object_frames
-new_object
-new_mesh
-set_object_frame
-meshgrid
-'''.strip().splitlines()
+def init():
+    register()
+    clear_animations()

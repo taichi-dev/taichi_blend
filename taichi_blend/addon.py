@@ -3,7 +3,7 @@
 import bpy
 import numpy as np
 from .numio import from_numpy, to_numpy
-from .anim import anim_update_frame
+from .anim import update_frame_callback, clear_animations
 
 bl_info = {
         'name': 'Taichi',
@@ -21,10 +21,10 @@ bl_info = {
 
 
 def register():
-    if anim_update_frame not in bpy.app.handlers.frame_change_pre:
-        bpy.app.handlers.frame_change_pre.append(anim_update_frame)
+    if update_frame_callback not in bpy.app.handlers.frame_change_pre:
+        bpy.app.handlers.frame_change_pre.append(update_frame_callback)
 
 
 def unregister():
-    if anim_update_frame in bpy.app.handlers.frame_change_pre:
-        bpy.app.handlers.frame_change_pre.remove(anim_update_frame)
+    if update_frame_callback in bpy.app.handlers.frame_change_pre:
+        bpy.app.handlers.frame_change_pre.remove(update_frame_callback)
