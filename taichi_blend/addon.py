@@ -5,7 +5,6 @@ import numpy as np
 from .numio import from_numpy, to_numpy
 from .anim import anim_update_frame
 
-'''
 bl_info = {
         'name': 'Taichi',
         'description': 'Productive & portable programming language for writting high-performance physics engines & renders',
@@ -22,16 +21,10 @@ bl_info = {
 
 
 def register():
-    if anim_update_frame in bpy.app.handlers.frame_change_pre:
-        bpy.app.handlers.frame_change_pre.remove(anim_update_frame)
-    bpy.app.handlers.frame_change_pre.append(anim_update_frame)
+    if anim_update_frame not in bpy.app.handlers.frame_change_pre:
+        bpy.app.handlers.frame_change_pre.append(anim_update_frame)
 
 
 def unregister():
     if anim_update_frame in bpy.app.handlers.frame_change_pre:
         bpy.app.handlers.frame_change_pre.remove(anim_update_frame)
-'''
-
-
-if anim_update_frame not in bpy.app.handlers.frame_change_pre:
-    bpy.app.handlers.frame_change_pre.append(anim_update_frame)

@@ -4,6 +4,7 @@ import taichi as ti
 import numpy as np
 import bpy
 
+tb.register()
 ti.init(arch=ti.cuda)
 
 #dim, n_grid, steps, dt = 2, 128, 20, 2e-4

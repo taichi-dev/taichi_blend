@@ -5,6 +5,7 @@ import taichi_blend as tb
 import numpy as np
 import bpy
 
+tb.register()
 ti.init(arch=ti.cuda)
 
 ### Parameters
