@@ -19,13 +19,13 @@ def update_frame_callback(scene, *args):
         cb(frame)
 
 
-def animation(iterator):
+def add_animation(iterator):
     import copy
 
     iterator = iterator()
     cache = []
 
-    def wrapped(frame):
+    def update(frame):
         while len(cache) <= frame:
             func = next(iterator)
             cache.append(func)
@@ -33,8 +33,7 @@ def animation(iterator):
         func = cache[frame]
         func()
 
-    anim_hooks.append(wrapped)
-    return wrapped
+    anim_hooks.append(update)
 
 
 class AnimUpdate:
@@ -42,13 +41,13 @@ class AnimUpdate:
         self.callback = callback
 
     def __add__(self, other):
-        def callback(*args, **kwargs):
-            self.callback(*args, **kwargs)
-            other.callback(*args, **kwargs)
+        def callback():
+            self.callback()
+            other.callback()
         AnimUpdate(callback)
 
-    def __call__(self, *args, **kwargs):
-        return self.callback(*args, **kwargs)
+    def __call__(self):
+        self.callback()
 
 
 def mesh_update(mesh, pos=None, edges=None, faces=None):

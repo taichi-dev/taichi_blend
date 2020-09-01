@@ -4,7 +4,7 @@ import taichi as ti
 import numpy as np
 import bpy
 
-tb.register()
+tb.init()
 ti.init(arch=ti.cuda)
 
 
@@ -12,15 +12,6 @@ ti.init(arch=ti.cuda)
 N = 2048
 dt = 1e-2
 gravity = 0.055
-
-
-# delete old mesh & object (if any)
-tb.delete_mesh('point_cloud')
-tb.delete_object('point_cloud')
-
-# create a new point cloud
-mesh = tb.new_mesh('point_cloud', np.zeros((N, 3)))
-object = tb.new_object('point_cloud', mesh)
 
 
 # declare Taichi fields
@@ -49,16 +40,20 @@ def substep():
         x[i] += v[i] * dt
 
 
+# delete old mesh & object (if any)
+tb.delete_mesh('point_cloud')
+tb.delete_object('point_cloud')
+
+# create a new point cloud
+mesh = tb.new_mesh('point_cloud', np.zeros((N, 3)))
+object = tb.new_object('point_cloud', mesh)
+
+
 # define animation iterator body
-@tb.anim_iter_hook(mesh)
+@tb.add_animation
 def main():
     init()
-    yield x.to_numpy()
     while True:
         for s in range(6):
             substep()
-        yield x.to_numpy()
-
-# hook animation iterator
-tb.anim_hooks.clear()
-tb.anim_hooks.append(main)
+        yield tb.mesh_update(mesh, x.to_numpy())
