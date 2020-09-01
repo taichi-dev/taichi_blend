@@ -38,6 +38,14 @@ def new_object(name, mesh):
     bpy.context.view_layer.objects.active = obj
 
 
+def get_object(name):
+    return bpy.data.objects[name]
+
+
+def get_mesh(name):
+    return bpy.data.meshes[name]
+
+
 def delete_mesh(name):
     try:
         obj = bpy.data.meshes[name]

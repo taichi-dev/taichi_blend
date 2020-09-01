@@ -44,7 +44,7 @@ class AnimUpdate:
         def callback():
             self.callback()
             other.callback()
-        AnimUpdate(callback)
+        return AnimUpdate(callback)
 
     def __call__(self):
         self.callback()
@@ -59,4 +59,13 @@ def mesh_update(mesh, pos=None, edges=None, faces=None):
         if faces is not None:
             from_numpy(mesh.polygons, 'vertices', faces)
         mesh.update()
+    return AnimUpdate(callback)
+
+
+def object_update(object, location=None, rotation=None):
+    def callback():
+        if location is not None:
+            object.matrix_world[0][3] = location[0]
+            object.matrix_world[1][3] = location[1]
+            object.matrix_world[2][3] = location[2]
     return AnimUpdate(callback)
