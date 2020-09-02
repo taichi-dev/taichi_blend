@@ -34,9 +34,10 @@ else:
 
         def mainloop(self):
             while self.running:
+                last_time = time.time()
                 self.pre_frame()
-                time.sleep(1 / 20)
                 self.show()
+                time.sleep(1 / 10)
             self.core = None
 
         def start(self):

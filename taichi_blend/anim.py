@@ -27,7 +27,10 @@ def add_animation(iterator):
 
     def update(frame):
         while len(cache) <= frame:
-            func = next(iterator)
+            try:
+                func = next(iterator)
+            except StopIteration:
+                func = lambda: None
             cache.append(func)
 
         func = cache[frame]
