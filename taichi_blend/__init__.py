@@ -6,6 +6,7 @@ from .numio import *
 from .anim import *
 from .helper import *
 from .wrapper import *
+from .console import *
 
 
 

@@ -65,7 +65,7 @@ def mesh_update(mesh, pos=None, edges=None, faces=None):
 def object_update(object, location=None, rotation=None):
     def callback():
         if location is not None:
-            object.matrix_world[0][3] = location[0]
-            object.matrix_world[1][3] = location[1]
-            object.matrix_world[2][3] = location[2]
+            object.location.x = location[0]
+            object.location.y = location[1]
+            object.location.z = location[2]
     return AnimUpdate(callback)

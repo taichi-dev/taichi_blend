@@ -6,8 +6,8 @@ from .numio import from_numpy, to_numpy
 from .anim import update_frame_callback, clear_animations
 
 bl_info = {
-        'name': 'Taichi',
-        'description': 'Productive & portable programming language for writting high-performance physics engines & renders',
+        'name': 'Taichi Blend',
+        'description': 'Taichi Blender intergration for creating physic-based animations',
         'author': 'Taichi Developers',
         'version': (0, 0, 0),
         'blender': (2, 82, 0),
