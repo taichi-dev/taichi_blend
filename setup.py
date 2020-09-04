@@ -1,5 +1,4 @@
 project_name = 'taichi_blend'
-from taichi_glsl.version import version, taichi_version
 version = '0.0.1'
 taichi_version = '0.6.28'
 description = 'Taichi Blender intergration for creating physic-based animations'

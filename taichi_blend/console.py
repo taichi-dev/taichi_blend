@@ -19,8 +19,7 @@ else:
             self.prev_stream = None
 
         def show(self):
-            content = self.content
-            content += '_'
+            content = self.content + '_'
             lines = content.splitlines()
             while len(lines) > self.res[1] // self.font_size:
                 lines.pop(0)
@@ -37,7 +36,7 @@ else:
                 last_time = time.time()
                 self.pre_frame()
                 self.show()
-                time.sleep(1 / 10)
+                time.sleep(1 / 20)
             self.core = None
 
         def start(self):
