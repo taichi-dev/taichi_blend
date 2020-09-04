@@ -1,6 +1,7 @@
 '''Blender API wrappers'''
 
 from .common import np_array
+from .numio import from_numpy, to_numpy
 import bpy
 
 

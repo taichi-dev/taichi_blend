@@ -3,7 +3,7 @@
 import numpy as np
 
 
-def meshgrid(n):
+def meshgrid(n, eight=False):
     def _face(x, y):
         return np.array([(x, y), (x + 1, y), (x + 1, y + 1), (x, y + 1)])
 
@@ -13,9 +13,17 @@ def meshgrid(n):
     def _edge2(x, y):
         return np.array([(x, y), (x, y + 1)])
 
+    def _edge3(x, y):
+        return np.array([(x, y), (x + 1, y + 1)])
+
+    def _edge4(x, y):
+        return np.array([(x + 1, y), (x, y + 1)])
+
     n_particles = n**2
     n_edges1 = (n - 1) * n
     n_edges2 = (n - 1) * n
+    n_edges3 = (n - 1) * (n - 1)
+    n_edges4 = (n - 1) * (n - 1)
     n_faces = (n - 1)**2
     xi = np.arange(n)
     yi = np.arange(n)
@@ -28,7 +36,14 @@ def meshgrid(n):
     edges2 = _edge2(*np.meshgrid(xi, yi[:-1])).swapaxes(0, 1).swapaxes(1, 2).swapaxes(2, 3)
     edges1 = (edges1[1] * n + edges1[0]).reshape(n_edges1, 2)
     edges2 = (edges2[1] * n + edges2[0]).reshape(n_edges2, 2)
-    edges = np.concatenate([edges1, edges2], axis=0)
+    if eight:
+        edges3 = _edge3(*np.meshgrid(xi[:-1], yi[:-1])).swapaxes(0, 1).swapaxes(1, 2).swapaxes(2, 3)
+        edges4 = _edge4(*np.meshgrid(xi[:-1], yi[:-1])).swapaxes(0, 1).swapaxes(1, 2).swapaxes(2, 3)
+        edges3 = (edges3[1] * n + edges3[0]).reshape(n_edges3, 2)
+        edges4 = (edges4[1] * n + edges4[0]).reshape(n_edges4, 2)
+        edges = np.concatenate([edges1, edges2, edges3, edges4], axis=0)
+    else:
+        edges = np.concatenate([edges1, edges2], axis=0)
     pos = np.concatenate([pos, np.zeros((n_particles, 1))], axis=1)
     uv = pos[faces, :2].reshape(faces.shape[1] * faces.shape[0], 2)
     return pos, edges, faces, uv
