@@ -26,6 +26,7 @@ def register():
     if bundle_path not in sys.path:
         sys.path.insert(0, bundle_path)
 
+
 def unregister():
     if bundle_path in sys.path:
         sys.path.remove(bundle_path)

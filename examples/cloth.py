@@ -5,71 +5,69 @@ import numpy as np
 import bpy
 
 nb.init()
-ti.init(arch=ti.cuda)
+ti.init(ti.cuda)
 
-### Parameters
-
-N = 128
-NN = N, N
-W = 1
-L = W / N
-gravity = 0.5
-stiffness = 1600
-damping = 2
-steps = 30
+N = 64
+shortening = 1
+stiffness = 2000
+damping = 1.6
 dt = 5e-4
+steps = 144
+gravity = 9.8
+wind = 0.1
+ball_radius = 0.4
 
-### Physics
+pos_, edges_, faces_, uv_ = nb.meshgrid(N, eight=True)
+pos_[:, :2] = pos_[:, :2] * 2 - 1
+pos_ = pos_[:, (2, 1, 0)]
 
-x = ti.Vector.field(3, float, NN)
-v = ti.Vector.field(3, float, NN)
+rest_ = np.sqrt(np.sum((pos_[edges_[:, 0]] - pos_[edges_[:, 1]])**2, axis=1))
 
+nb.delete_mesh('cloth')
+nb.delete_object('cloth')
+nb.delete_object('ball')
+cloth_mesh = nb.new_mesh('cloth', pos_, nb.meshgrid(N)[1], faces_, uv_)
+cloth_object = nb.new_object('cloth', cloth_mesh)
+
+bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=3, radius=ball_radius)
+ball_object = bpy.context.object
+ball_object.name = 'ball'
+
+pos = ti.Vector.field(3, float, pos_.shape[0])
+vel = ti.Vector.field(3, float, pos_.shape[0])
+edges = ti.Vector.field(2, int, edges_.shape[0])
+rest = ti.field(float, rest_.shape[0])
+pos.from_numpy(pos_)
+edges.from_numpy(edges_)
+rest.from_numpy(rest_)
 
 @ti.kernel
-def init():
-    for i in ti.grouped(x):
-        x[i] = tl.vec((i + 0.5) * L - 0.5, 0.8).xzy
+def substep(bx: float, bz: float):
+    for e in edges:
+        i, j = edges[e]
+        if i == j: continue
+        r = pos[i] - pos[j]
+        l = rest[e] * shortening
+        acc = stiffness * dt * r * (r.norm() - l) / l**2
+        vel[i] -= acc
+        vel[j] += acc
+    for i in pos:
+        if pos[i].z == 1 and abs(pos[i].y) == 1:
+            continue
+        vel[i].z -= gravity * dt
+        vel[i].x -= wind * dt
+        vel[i] = tl.ballBoundReflect(pos[i], vel[i], tl.vec(bx, 0.0, bz), ball_radius + 0.03, 6)
+        vel[i] *= ti.exp(-dt * damping)
+        pos[i] += vel[i] * dt
 
-
-links = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (1, -1), (-1, 1), (1, 1)]
-links = [tl.vec(*_) for _ in links]
-
-
-@ti.kernel
-def substep():
-    for i in ti.grouped(x):
-        acc = x[i] * 0
-        for d in ti.static(links):
-            disp = x[tl.clamp(i + d, 0, tl.vec(*NN) - 1)] - x[i]
-            length = L * float(d).norm()
-            acc += disp * (disp.norm() - length) / length**2
-        v[i] += stiffness * acc * dt
-    for i in ti.grouped(x):
-        v[i].y -= gravity * dt
-        v[i] = tl.ballBoundReflect(x[i], v[i], tl.vec(+0.0, +0.2, -0.0), 0.4, 6)
-    for i in ti.grouped(x):
-        v[i] *= ti.exp(-damping * dt)
-        x[i] += dt * v[i]
-
-
-### Blender
-
-_, edges, faces, uv = nb.meshgrid(N)
-
-nb.delete_mesh('point_cloud')
-nb.delete_object('point_cloud')
-
-mesh = nb.new_mesh('point_cloud', np.zeros((N**2, 3)), edges, faces)
-object = nb.new_object('point_cloud', mesh)
 
 @nb.add_animation
 def main():
-    def T(x):
-        return np.array([x[:, 0], x[:, 2], x[:, 1]]).swapaxes(0, 1)
-
-    init()
-    yield T(x.to_numpy().reshape(N**2, 3))
-    while True:
+    for i in range(500):
+        print('rendering frame', i)
         for s in range(steps):
-            substep()
-        yield nb.mesh_update(mesh, T(x.to_numpy().reshape(N**2, 3)))
+            t = (i + s / steps) * 0.03
+            bx, bz = ti.cos(t) * 0.7, -ti.sin(t) * 0.7
+            substep(bx, bz)
+        yield nb.mesh_update(cloth_mesh, pos.to_numpy()) \
+            + nb.object_update(ball_object, location=[bx, 0, bz])

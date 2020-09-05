@@ -37,7 +37,7 @@ If you encounter any problems, please report by `opening an issue <https://githu
 --------
 
 1. 前往 `发布页面 <https://github.com/taichi-dev/taichi_blend/releases>`_ ，
-   选择一个符合你操作系统的 ZIP 文件来下载。
+   选择符合你操作系统的那个 ZIP 文件来下载。
    比如 Windows 用户，请下载 ``Taichi-Blend-win.zip`` 。
 
 2. 启动 Blender，在菜单栏中如下步骤操作：
