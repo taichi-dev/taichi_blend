@@ -7,8 +7,8 @@ Taichi Blender intergration for creating physic-based animations.
 
 
 Examples: https://github.com/taichi-dev/taichi_blend/tree/master/examples.
-Taichi repo: https://github.com/taichi-dev/taichi.
-Taichi documentation: https://taichi.readthedocs.io/en/stable.
+Taichi repo: .
+Taichi documentation: 
 Taichi 中文文档: https://taichi.readthedocs.io/zh_CN/latest.
 Taichi forum: https://forum.taichi.graphics.
 
@@ -52,3 +52,25 @@ If you encounter any problems, please report by `opening an issue <https://githu
 
 
 如果遇到任何问题，请 `开一个 Issue <https://github.com/taichi_blend/issues>`_ 来报告，十分感谢！
+
+
+Included packages
+-----------------
+
+Installing this bundle (``Taichi-Blend.zip``) will allows you to use these packages:
+
+* ``taichi`` - the Taichi programming langurage [[repo]](https://github.com/taichi-dev/taichi) [[doc]](https://taichi.readthedocs.io/en/stable)
+* ``taichi_glsl`` - some handy helper functions for Taichi [[repo]](https://github.com/taichi-dev/taichi_glsl) [[doc]](https://taichi-glsl.readthedocs.io)
+* ``taichi_elements`` - a high-performance MPM solver written in Taichi [[repo]](https://github.com/taichi-dev/taichi_elements) [[doc]](https://taichi-elements.readthedocs.io)
+* ``numblend`` - utilities to interface Blender with NumPy
+
+
+整合包内容
+----------
+
+安装了该整合包 (``Taichi-Blend.zip``) 后，你将可以使用下列 Python 包：
+
+* ``taichi`` - Taichi 编程语言 [[项目主页]](https://github.com/taichi-dev/taichi) [[中文文档]](https://taichi.readthedocs.io/zh_CN/latest)
+* ``taichi_glsl`` - Taichi 一些有用的扩展函数 [[项目主页]](https://github.com/taichi-dev/taichi_glsl) [[英文文档]](https://taichi-glsl.readthedocs.io)
+* ``taichi_elements`` - 用 Taichi 写的一个高性能 MPM 求解器 [[项目主页]](https://github.com/taichi-dev/taichi_elements) [[英文文档]](https://taichi-elements.readthedocs.io)
+* ``numblend`` - 在 Blender 和 NumPy 之间搭建桥梁的工具
