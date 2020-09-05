@@ -1,6 +1,7 @@
 bundle: package
 	mkdir -p build/Taichi-Blend
-	python3 -m pip install taichi_glsl dist/*.whl -t build/Taichi-Blend
+	python3 -m pip install --no-deps -r requirements.txt -t build/Taichi-Blend
+	python3 -m pip install --no-deps dist/*.whl -t build/Taichi-Blend
 	cp bundle.py build/Taichi-Blend/__init__.py
 	rm -f build/Taichi-Blend.zip
 	cd build && zip -r Taichi-Blend.zip Taichi-Blend

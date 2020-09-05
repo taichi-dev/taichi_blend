@@ -17,16 +17,12 @@ bl_info = {
 }
 
 
-for p in sys.path:
-    bundle_path = os.path.join(p, 'Taichi-Blend')
-    if os.path.exists(bundle_path):
-        break
-else:
-    raise Exception('Cannot find Taichi-Blend!')
+bundle_path = os.path.abspath(os.path.dirname(__file__))
+assert os.path.exists(bundle_path), f'{bundle_path} does not exist!'
 
 
 def register():
-    print('Found Taichi-Blend at', bundle_path)
+    print('Taichi-Blend bundle at', bundle_path)
     if bundle_path not in sys.path:
         sys.path.insert(0, bundle_path)
 

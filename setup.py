@@ -1,6 +1,5 @@
 project_name = 'taichi_blend'
 version = '0.0.1'
-taichi_version = '0.6.28'
 description = 'Taichi Blender intergration for creating physic-based animations'
 long_description = '''
 Taichi Blend
@@ -17,7 +16,6 @@ classifiers = [
 ]
 python_requires = '>=3.6'
 install_requires = [
-    'taichi>=' + taichi_version,
 ]
 
 import setuptools
