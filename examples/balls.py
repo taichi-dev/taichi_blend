@@ -1,10 +1,10 @@
-import taichi_blend as tb
+import numblend as nb
 import taichi_glsl as tl
 import taichi as ti
 import numpy as np
 import bpy
 
-tb.init()
+nb.init()
 ti.init(arch=ti.cuda)
 
 
@@ -43,9 +43,9 @@ def substep():
         v[i] = tl.boundReflect(x[i], v[i], radius - bound, bound - radius, 0.87, 0.92)
 
 
-tb.delete_object('boundary')
+nb.delete_object('boundary')
 for i in range(N):
-    tb.delete_object(f'ball_{i}')
+    nb.delete_object(f'ball_{i}')
 
 bpy.ops.mesh.primitive_cube_add(size=6)
 bpy.context.object.name = f'boundary'
@@ -60,14 +60,14 @@ for i in range(N):
     bpy.context.object.name = f'ball_{i}'
     objects.append(bpy.context.object)
 
-@tb.add_animation
+@nb.add_animation
 def main():
     init()
     while True:
         for s in range(steps):
             substep()
         pos = x.to_numpy()
-        ret = tb.AnimUpdate()
+        ret = nb.AnimUpdate()
         for i in range(N):
-            ret += tb.object_update(objects[i], location=pos[i])
+            ret += nb.object_update(objects[i], location=pos[i])
         yield ret

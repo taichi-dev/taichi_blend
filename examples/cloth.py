@@ -1,11 +1,10 @@
 import taichi as ti
 import taichi_glsl as tl
-import taichi_three as t3
-import taichi_blend as tb
+import numblend as nb
 import numpy as np
 import bpy
 
-tb.register()
+nb.init()
 ti.init(arch=ti.cuda)
 
 ### Parameters
@@ -55,15 +54,15 @@ def substep():
 
 ### Blender
 
-_, edges, faces, uv = tb.meshgrid(N)
+_, edges, faces, uv = nb.meshgrid(N)
 
-tb.delete_mesh('point_cloud')
-tb.delete_object('point_cloud')
+nb.delete_mesh('point_cloud')
+nb.delete_object('point_cloud')
 
-mesh = tb.new_mesh('point_cloud', np.zeros((N**2, 3)), edges, faces)
-object = tb.new_object('point_cloud', mesh)
+mesh = nb.new_mesh('point_cloud', np.zeros((N**2, 3)), edges, faces)
+object = nb.new_object('point_cloud', mesh)
 
-@tb.anim_iter_hook(mesh)
+@nb.add_animation
 def main():
     def T(x):
         return np.array([x[:, 0], x[:, 2], x[:, 1]]).swapaxes(0, 1)
@@ -73,7 +72,4 @@ def main():
     while True:
         for s in range(steps):
             substep()
-        yield T(x.to_numpy().reshape(N**2, 3))
-
-tb.anim_hooks.clear()
-tb.anim_hooks.append(main)
+        yield nb.mesh_update(mesh, T(x.to_numpy().reshape(N**2, 3)))

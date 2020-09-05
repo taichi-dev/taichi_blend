@@ -1,9 +1,9 @@
-import taichi_blend as tb
+import numblend as nb
 import taichi as ti
 import numpy as np
 import bpy
 
-tb.init()
+nb.init()
 ti.init(arch=ti.cuda)
 
 
@@ -91,14 +91,14 @@ def init():
         J[i] = 1
 
 
-tb.delete_mesh('point_cloud')
-tb.delete_object('point_cloud')
+nb.delete_mesh('point_cloud')
+nb.delete_object('point_cloud')
 
-mesh = tb.new_mesh('point_cloud', np.zeros((n_particles, 3)))
-object = tb.new_object('point_cloud', mesh)
+mesh = nb.new_mesh('point_cloud', np.zeros((n_particles, 3)))
+object = nb.new_object('point_cloud', mesh)
 
 
-@tb.add_animation
+@nb.add_animation
 def main():
     def T(x):
         return np.array([x[:, 0] * 2 - 1, x[:, 2] * 2 - 1, x[:, 1] * 2]).swapaxes(0, 1)
@@ -107,4 +107,4 @@ def main():
     while True:
         for s in range(steps):
             substep()
-        yield tb.mesh_update(mesh, T(x.to_numpy()))
+        yield nb.mesh_update(mesh, T(x.to_numpy()))
