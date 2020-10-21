@@ -16,32 +16,32 @@ How to install
 
 1. Goto the Blender ``Scripting`` window, type these commands into the shell:
 
-.. code-block:: python
+   .. code-block:: python
 
-   import sys
-   import platform
-   major = sys.version_info.major
-   minor = sys.version_info.minor
-   assert major == 3 and minor in [6, 7, 8], "Only Python 3.6/3.7/3.8 is supported"
+      import sys
+      import platform
+      major = sys.version_info.major
+      minor = sys.version_info.minor
+      assert major == 3 and minor in [6, 7, 8], "Only Python 3.6/3.7/3.8 is supported"
 
-   ver = str(major) + str(minor)
+      ver = str(major) + str(minor)
 
-   if sys.platform.lower().startswith('win'):
-      plat = 'win'
-   elif sys.platform.lower().startswith('linux'):
-      plat = 'linux'
-   else:
-      assert 0, "Invalid platform: {}".format(sys.platform)
+      if sys.platform.lower().startswith('win'):
+         plat = 'win'
+      elif sys.platform.lower().startswith('linux'):
+         plat = 'linux'
+      else:
+         assert 0, "Invalid platform: {}".format(sys.platform)
 
-   file = 'Taichi-Blend-{}-py{}.zip'.format(plat, ver)
-   print('You should download', file)
+      file = 'Taichi-Blend-{}-py{}.zip'.format(plat, ver)
+      print('You should download', file)
 
 
-It may shows, for example:
+   It may shows, for example:
 
-.. code-block:: none
+   .. code-block:: none
 
-   You should download Taichi-Blend-win-py37.zip
+      You should download Taichi-Blend-win-py37.zip
 
 2. Go to the `release page <https://github.com/taichi-dev/taichi_blend/releases>`_,
    choose one of the ZIP files to download, according to the ``You should download`` printed above.
