@@ -13,5 +13,5 @@ elif sys.platform.lower().startswith('linux'):
 else:
     assert 0, "Invalid platform: {}".format(sys.platform)
 
-file = 'Taichi-Blend-{}-py{}.zip'.format(plat, ver)
+file = 'Taichi-Blend-{}-{}.zip'.format(plat, ver)
 print('You should download', file)
