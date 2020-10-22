@@ -43,18 +43,10 @@ def substep():
         v[i] = tl.boundReflect(x[i], v[i], radius - bound, bound - radius, 0.87, 0.92)
 
 
-nb.delete_object('boundary')
-for i in range(N):
-    nb.delete_object(f'ball_{i}')
-
-bpy.ops.mesh.primitive_cube_add(size=6)
-bpy.context.object.name = f'boundary'
-bpy.ops.object.modifier_add(type='WIREFRAME')
-bpy.ops.object.modifier_apply(apply_as='DATA')
-
 objects = []
 
 for i in range(N):
+    nb.delete_object(f'ball_{i}')
     bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=3, radius=0.5)
     bpy.ops.object.shade_smooth()
     bpy.context.object.name = f'ball_{i}'

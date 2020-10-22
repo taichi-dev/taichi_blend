@@ -12,6 +12,7 @@ bl_info = {
         'support': 'COMMUNITY',
         'wiki_url': 'https://github.com/taichi-dev/taichi_blend/wiki',
         'tracker_url': 'https://github.com/taichi-dev/taichi_blend/issues',
+        'warning': 'Development mode',
         'category': 'Physics',
 }
 

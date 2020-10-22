@@ -13,4 +13,5 @@ from .console import *
 
 
 def init():
+    register()
     clear_animations()

@@ -41,7 +41,14 @@ def add_animation(iterator):
 
 class AnimUpdate:
     def __init__(self, callback=None):
-        self.callback = callback if callback is not None else lambda: None
+        if callback is None:
+            callback = lambda: None
+        elif isinstance(callback, (list, tuple)):
+            cbs = callback
+            def callback():
+                for cb in cbs:
+                    cb()
+        self.callback = callback
 
     def __add__(self, other):
         def callback():
@@ -72,3 +79,14 @@ def object_update(object, location=None, rotation=None):
             object.location.y = location[1]
             object.location.z = location[2]
     return AnimUpdate(callback)
+
+
+def objects_update(objects, location=None, rotation=None):
+        updates = []
+        if location is None:
+            location = [None for o in objects]
+        if rotation is None:
+            rotation = [None for o in objects]
+        for object, location, rotation in zip(objects, location, rotation):
+            updates.append(object_update(object, location=location, rotation=rotation))
+        return AnimUpdate(updates)
