@@ -1,51 +1,30 @@
 try:
-    import taichi as ti
+    import tkinter
 except ImportError:
-    pass
+    print('WARNING: numblend cannot import tkinter! nb.open_console will be unavailable')
+    open_console = NotImplemented
 else:
-    import threading
+    import io
     import sys
     import time
-    import io
+    import threading
 
 
-    class Console(ti.GUI, io.TextIOBase):
-        def __init__(self, name='Console', res=(640, 480), **kwargs):
-            super().__init__(name, res, **kwargs)
-            self.font_color = kwargs.get('font_color', 0xffffff)
-            self.font_size = kwargs.get('font_size', 16)
-            self.fps_limit = None
-            self.content = ''
+    class Console(io.TextIOBase):
+        def __init__(self, res=(640, 480), **kwargs):
+            super().__init__()
             self.prev_stream = None
-
-        def show(self):
-            content = self.content + '_'
-            lines = content.splitlines()
-            while len(lines) > self.res[1] // self.font_size:
-                lines.pop(0)
-            for i, line in enumerate(lines):
-                pos = (0, 1 - i * self.font_size / self.res[1])
-                self.text(line, pos, font_size=self.font_size, color=self.font_color)
-            super().show()
-
-        def pre_frame(self):
-            pass
+            self.root = tkinter.Tk()
+            self.log = tkinter.Text(self.root)
+            self.log.grid(row=25, column=0, columnspan=80)
 
         def mainloop(self):
-            while self.running:
-                last_time = time.time()
-                self.pre_frame()
-                self.show()
-                time.sleep(1 / 20)
-            self.core = None
-
-        def start(self):
-            t = threading.Thread(target=self.mainloop)
-            t.start()
+            self.root.mainloop()
 
         def write(self, s):
-            self.prev_stream.write(s)
-            self.content += s
+            if self.prev_stream is not None:
+                self.prev_stream.write(s)
+            self.log.insert(tkinter.END, s)
 
 
     def open_console(*args, **kwargs):
@@ -54,5 +33,11 @@ else:
             open_console.cons.prev_stream = sys.stdout
             sys.stdout = open_console.cons
             sys.stderr = open_console.cons
-            open_console.cons.start()
         return open_console.cons
+
+
+    if __name__ == '__main__':
+        cons = open_console()
+        print('hello', end='')
+        print('workd\nas\n')
+        cons.mainloop()

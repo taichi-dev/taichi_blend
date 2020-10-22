@@ -1,4 +1,4 @@
-PYVERSION=${1?Specify the Blender Python version}
+PYVERSION=${1?Specify the Blender Python version, e.g. 37}
 
 rm -rf build/Taichi-Blend
 mkdir -p build/Taichi-Blend
