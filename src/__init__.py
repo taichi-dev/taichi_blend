@@ -16,7 +16,7 @@ bl_info = {
 }
 
 
-bundle_path = os.path.abspath(os.path.dirname(__file__))
+bundle_path = os.path.join(os.path.dirname(__file__), 'bundle-packages')
 assert os.path.exists(bundle_path), f'{bundle_path} does not exist!'
 
 

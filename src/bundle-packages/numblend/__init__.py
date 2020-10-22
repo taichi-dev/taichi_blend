@@ -1,3 +1,5 @@
+'''Interface between NumPy and Blender'''
+
 import bpy
 import numpy as np
 
@@ -11,5 +13,4 @@ from .console import *
 
 
 def init():
-    register()
     clear_animations()
