@@ -22,16 +22,14 @@ def init():
 @ti.kernel
 def update(t: float):
     for i, j in pos:
-        pos[i, j].z = ti.sin(pos[i, j].xy.norm() * 0.5 - t)
+        pos[i, j].z = ti.sin(pos[i, j].xy.norm() * 0.5 - t * 2)
 
 
 
-objects = []
-for i in range(N**2):
-    nb.delete_object(f'cube_{i}')
-    bpy.ops.mesh.primitive_cube_add(size=1)
-    bpy.context.object.name = f'cube_{i}'
-    objects.append(bpy.context.object)
+nb.delete_mesh('point_cloud')
+nb.delete_object('point_cloud')
+mesh = nb.new_mesh('point_cloud')
+nb.new_object('point_cloud', mesh)
 
 
 @nb.add_animation
@@ -39,4 +37,4 @@ def main():
     init()
     for frame in range(250):
         update(frame * 0.03)
-        yield nb.mesh_update(objects, pos=pos.to_numpy().reshape(N**2, 3))
+        yield nb.mesh_update(mesh, pos=pos.to_numpy().reshape(N**2, 3))

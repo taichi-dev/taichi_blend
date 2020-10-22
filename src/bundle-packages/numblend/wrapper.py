@@ -19,7 +19,7 @@ def set_object_frame(obj, i, mesh):
     obj.mesh_sequence_settings.meshNameArray[i].key = mesh.name
 
 
-def new_mesh(name, pos, edges=[], faces=[], uv=None):
+def new_mesh(name, pos=[], edges=[], faces=[], uv=None):
     pos = np_array(pos)
     edges = np_array(edges)
     faces = np_array(faces)

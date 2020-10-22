@@ -82,11 +82,11 @@ def object_update(object, location=None, rotation=None):
 
 
 def objects_update(objects, location=None, rotation=None):
-        updates = []
-        if location is None:
-            location = [None for o in objects]
-        if rotation is None:
-            rotation = [None for o in objects]
-        for object, location, rotation in zip(objects, location, rotation):
-            updates.append(object_update(object, location=location, rotation=rotation))
-        return AnimUpdate(updates)
+    updates = []
+    if location is None:
+        location = [None for o in objects]
+    if rotation is None:
+        rotation = [None for o in objects]
+    for object, location, rotation in zip(objects, location, rotation):
+        updates.append(object_update(object, location=location, rotation=rotation))
+    return AnimUpdate(updates)

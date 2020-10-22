@@ -1,5 +1,4 @@
 import numblend as nb
-import taichi_glsl as tl
 import taichi as ti
 import numpy as np
 import bpy
@@ -10,24 +9,24 @@ ti.init(arch=ti.cpu)
 
 N = 16
 
-pos = ti.Vector.field(3, float, (N, N))
+pos = ti.Vector.field(3, float, N)
 
 
 @ti.kernel
 def init():
-    for i, j in pos:
-        pos[i, j] = ti.Vector([i - N / 2, j - N / 2, 0])
+    for i in pos:
+        pos[i] = ti.Vector([i - N / 2, 0, 0])
 
 
 @ti.kernel
 def update(t: float):
-    for i, j in pos:
-        pos[i, j].z = ti.sin(pos[i, j].xy.norm() * 0.5 - t)
+    for i in pos:
+        pos[i].z = ti.sin(pos[i].x * 0.5 - t * 2)
 
 
 
 objects = []
-for i in range(N**2):
+for i in range(N):
     nb.delete_object(f'cube_{i}')
     bpy.ops.mesh.primitive_cube_add(size=1)
     bpy.context.object.name = f'cube_{i}'
@@ -39,4 +38,4 @@ def main():
     init()
     for frame in range(250):
         update(frame * 0.03)
-        yield nb.objects_update(objects, location=pos.to_numpy().reshape(N**2, 3))
+        yield nb.objects_update(objects, location=pos.to_numpy())
