@@ -90,3 +90,9 @@ def objects_update(objects, location=None, rotation=None):
     for object, location, rotation in zip(objects, location, rotation):
         updates.append(object_update(object, location=location, rotation=rotation))
     return AnimUpdate(updates)
+
+
+def object_mesh_update(object, mesh):
+    def callback():
+        object.data = mesh
+    return AnimUpdate(callback)

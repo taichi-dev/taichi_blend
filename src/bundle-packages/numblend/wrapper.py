@@ -37,6 +37,7 @@ def new_object(name, mesh):
     col = bpy.context.collection
     col.objects.link(obj)
     bpy.context.view_layer.objects.active = obj
+    return obj
 
 
 def get_object(name):
