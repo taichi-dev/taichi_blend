@@ -3,7 +3,7 @@ colorama
 dill
 pybind11>=2.5.0
 sourceinspect>=0.0.4
-taichi==0.7.2
+taichi
 taichi_glsl
 taichi_three
 taichi_elements

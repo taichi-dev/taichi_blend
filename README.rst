@@ -19,7 +19,8 @@ Video tutorial series (Bilibili)
 --------------------------------
 
 - `EP0 - installation <https://www.bilibili.com/video/bv1ty4y1B75T>`_
-- `EP1 - cube sine wave <https://www.bilibili.com/video/BV15A411j7EB)>`_
+- `EP1 - wave of cubes <https://www.bilibili.com/video/BV15A411j7EB)>`_
+- `EP2 - water wave simulation <https://www.bilibili.com/video/BV1h54y1C7uM)>`_
 
 
 How to install
