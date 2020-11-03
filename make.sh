@@ -7,7 +7,7 @@ osx) PIPPLAT=macosx_10_14_x86_64;;
 esac
  
 
-rm -rf build/Taichi-Blend
+rm -rf build
 mkdir -p build
 cp -r src build/Taichi-Blend
 mkdir -p build/Taichi-Blend/bundle-packages
