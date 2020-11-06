@@ -23,3 +23,7 @@ def from_numpy(b, key, a, dim=None):
     seq = a.reshape(a.shape[0] * dim).tolist()
     seq = seq + [0] * (len(b) * dim - len(seq))
     b.foreach_set(key, seq)
+
+
+def matrix_to_numpy(m):
+    return np.array([[m[i][j] for j in range(len(m[i]))] for i in range(len(m))])

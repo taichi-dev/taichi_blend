@@ -1,78 +1,5 @@
 import bpy
 import bgl
-import numpy as np
-import threading
-import queue
-
-
-
-def taichi_worker(engine):
-    hint = f'[taichi_worker:{threading.get_ident()}]'
-
-    print(hint, 'started')
-    import taichi as ti
-    ti.init()
-    
-    @ti.kernel
-    def render(pixels: ti.ext_arr(), width: int, height: int):
-        for i, j in ti.ndrange(width, height):
-            base = (j * width + i) * 4
-            pixels[base + 0] = i / width
-            pixels[base + 1] = j / height
-            pixels[base + 2] = 0
-            pixels[base + 3] = 1
-
-    while engine.running:
-        try:
-            cmd, *args = engine.queue.get(block=True, timeout=10)
-        except queue.Empty:
-            continue
-
-        if cmd == 'RENDER':
-            render(*args)
-        
-        engine.queue.task_done()
-
-    print(hint, 'stopped')
-
-
-class singleton:
-    def __init__(self, cls):
-        self._class = cls
-        self._instance_lock = threading.Lock()
-        self._instance = None
-
-    def __call__(self, *args, **kwargs):
-        with self._instance_lock:
-            if self._instance is None:
-                self._instance = self._class(*args, **kwargs)
-            return self._instance
-
-    def __getattr__(self, attr):
-        return getattr(self._class, attr)
-
-
-@singleton
-class _TaichiRenderEngine:
-    def __init__(self):
-        self.running = True
-        self.queue = queue.Queue(maxsize=4)
-        self.worker = threading.Thread(target=taichi_worker, args=[self])
-        self.worker.start()
-
-    def stop(self):
-        self.running = False
-        self.queue.put(['STOP'], block=False)
-        self.worker.join(timeout=3)
-
-    def render(self, width, height):
-        pixels = np.empty(width * height * 4, dtype=np.float32)
-        try:
-            self.queue.put(['RENDER', pixels, width, height], block=True, timeout=1)
-        except queue.Full:
-            print('Taichi worker queue full')
-        self.queue.join()
-        return pixels
 
 
 class TaichiRenderEngine(bpy.types.RenderEngine):
@@ -90,7 +17,8 @@ class TaichiRenderEngine(bpy.types.RenderEngine):
         self.draw_data = None
         self.updated = False
 
-        self.engine = _TaichiRenderEngine()
+        from .worker import TaichiWorker
+        self.engine = TaichiWorker()
         self.worker = self.engine.worker
 
     # When the render engine instance is destroy, this is called. Clean up any
@@ -192,10 +120,11 @@ class CustomDrawData:
         # Generate dummy float image buffer
         self.dimensions = dimensions
         self.view_matrix = view_matrix
-        
-        width, height = dimensions
 
-        pixels = engine.render(width, height)
+        width, height = dimensions
+        view = [[view_matrix[i][j] for j in range(4)] for i in range(4)]
+
+        pixels = engine.render(width, height, view)
         pixels = bgl.Buffer(bgl.GL_FLOAT, width * height * 4, pixels)
 
         # Generate texture
@@ -285,6 +214,9 @@ def register():
     for panel in get_panels():
         panel.COMPAT_ENGINES.add('TAICHI')
 
+    from . import ui
+    ui.register()
+
 
 def unregister():
     bpy.utils.unregister_class(TaichiRenderEngine)
@@ -292,3 +224,6 @@ def unregister():
     for panel in get_panels():
         if 'TAICHI' in panel.COMPAT_ENGINES:
             panel.COMPAT_ENGINES.remove('TAICHI')
+
+    from . import ui
+    ui.unregister()

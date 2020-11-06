@@ -1,6 +1,6 @@
 bl_info = {
         'name': 'Taichi Blend',
-        'description': 'Taichi Blender intergration for creating physic-based animations',
+        'description': 'Taichi Blender intergration',
         'author': 'Taichi Developers',
         'version': (0, 0, 1),
         'blender': (2, 81, 0),
