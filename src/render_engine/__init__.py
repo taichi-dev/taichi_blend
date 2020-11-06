@@ -26,6 +26,8 @@ class TaichiRenderEngine(bpy.types.RenderEngine):
     def __del__(self):
         if hasattr(self, 'engine'):
             self.engine.stop()
+            from .worker import TaichiWorker
+            TaichiWorker._delete_instance()
 
     # This is the method called by Blender for both final renders (F12) and
     # small preview for materials, world and lights.
@@ -94,6 +96,8 @@ class TaichiRenderEngine(bpy.types.RenderEngine):
         region = context.region
         scene = depsgraph.scene
         view_matrix = context.region_data.view_matrix.to_4x4()
+        window_matrix = context.region_data.window_matrix.to_4x4()
+        perspective_matrix = context.region_data.perspective_matrix.to_4x4()
 
         # Get viewport dimensions
         dimensions = region.width, region.height
@@ -105,8 +109,11 @@ class TaichiRenderEngine(bpy.types.RenderEngine):
 
         if not self.draw_data or self.updated \
             or self.draw_data.dimensions != dimensions \
+            or self.draw_data.window_matrix != window_matrix \
+            or self.draw_data.perspective_matrix != perspective_matrix \
             or self.draw_data.view_matrix != view_matrix:
-            self.draw_data = CustomDrawData(self.engine, dimensions, view_matrix)
+            self.draw_data = CustomDrawData(self.engine, dimensions,
+                    view_matrix, window_matrix, perspective_matrix)
             self.updated = False
 
         self.draw_data.draw()
@@ -116,15 +123,20 @@ class TaichiRenderEngine(bpy.types.RenderEngine):
 
 
 class CustomDrawData:
-    def __init__(self, engine, dimensions, view_matrix):
+    def __init__(self, engine, dimensions,
+            view_matrix, window_matrix, perspective_matrix):
         # Generate dummy float image buffer
         self.dimensions = dimensions
         self.view_matrix = view_matrix
+        self.window_matrix = window_matrix
+        self.perspective_matrix = perspective_matrix
 
         width, height = dimensions
         view = [[view_matrix[i][j] for j in range(4)] for i in range(4)]
+        window = [[window_matrix[i][j] for j in range(4)] for i in range(4)]
+        perspective = [[perspective_matrix[i][j] for j in range(4)] for i in range(4)]
 
-        pixels = engine.render(width, height, view)
+        pixels = engine.render(width, height, view, window, perspective)
         pixels = bgl.Buffer(bgl.GL_FLOAT, width * height * 4, pixels)
 
         # Generate texture

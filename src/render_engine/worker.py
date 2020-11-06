@@ -11,22 +11,22 @@ import sys
 import os
 
 
-def get_render_script():
-    text_name = bpy.context.scene.taichi_render_text
-    text_string = bpy.data.texts[text_name].as_string()
+def run_source(source, run_name=None):
     fd, path = tempfile.mkstemp(prefix='taichiblend-', suffix='.py')
     os.close(fd)
     with open(path, 'w') as f:
-        f.write(text_string)
-    text_dict = runpy.run_path(path, run_name=text_name)
+        f.write(source)
+    module = runpy.run_path(path, run_name=run_name)
     atexit.register(os.unlink, path)
-    return text_dict
+    return module
 
 
 def taichi_worker(engine):
     hint = f'[taichi_worker:{threading.get_ident()}]'
 
     print(hint, 'started')
+    text = {'render': lambda *x: None}
+
     while engine.running:
         try:
             cmd, *args = engine.queue.get(block=True, timeout=10)
@@ -35,7 +35,7 @@ def taichi_worker(engine):
 
         try:
             if cmd == 'UPDATE':
-                text = get_render_script()
+                text = run_source(*args, run_name='render')
 
             elif cmd == 'RENDER':
                 text['render'](*args)
@@ -64,6 +64,10 @@ class singleton:
     def __getattr__(self, attr):
         return getattr(self._class, attr)
 
+    def _delete_instance(self):
+        with self._instance_lock:
+            self._instance = None
+
 
 @singleton
 class TaichiWorker:
@@ -78,11 +82,11 @@ class TaichiWorker:
         self.queue.put(['STOP'], block=False)
         self.worker.join(timeout=3)
 
-    def render(self, width, height, view):
+    def render(self, width, height, *args):
         pixels = np.empty(width * height * 4, dtype=np.float32)
-        render_args = pixels, width, height, view
+        args = [pixels, width, height, *args]
         try:
-            self.queue.put(['RENDER', *render_args], block=True, timeout=1)
+            self.queue.put(['RENDER', *args], block=True, timeout=1)
         except queue.Full:
             print('Taichi worker queue full')
         self.queue.join()
