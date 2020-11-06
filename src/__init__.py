@@ -1,7 +1,3 @@
-import sys
-import os
-
-
 bl_info = {
         'name': 'Taichi Blend',
         'description': 'Taichi Blender intergration for creating physic-based animations',
@@ -15,22 +11,20 @@ bl_info = {
         'category': 'Physics',
 }
 
+__all__ = [
+    'package_bundle',
+    'node_system',
+    'render_engine',
+]
 
-bundle_path = os.path.join(os.path.dirname(__file__), 'bundle-packages')
-assert os.path.exists(bundle_path), f'{bundle_path} does not exist!'
-
-
-from . import node_system
-
+from . import *
+modules = [globals()[x] for x in __all__]
 
 def register():
-    print('Taichi-Blend bundle at', bundle_path)
-    if bundle_path not in sys.path:
-        sys.path.insert(0, bundle_path)
-    node_system.register()
+    for module in modules:
+        module.register()
 
 
 def unregister():
-    node_system.unregister()
-    if bundle_path in sys.path:
-        sys.path.remove(bundle_path)
+    for module in reversed(modules):
+        module.unregister()
