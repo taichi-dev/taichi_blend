@@ -2,7 +2,7 @@ bl_info = {
         'name': 'Taichi Blend',
         'description': 'Taichi Blender intergration',
         'author': 'Taichi Developers',
-        'version': (0, 0, 1),
+        'version': (0, 0, 3),
         'blender': (2, 81, 0),
         'location': 'Scripting module',
         'support': 'COMMUNITY',
@@ -13,6 +13,7 @@ bl_info = {
 
 __all__ = [
     'package_bundle',
+    #'developer_utils',
     'node_system',
     'render_engine',
 ]

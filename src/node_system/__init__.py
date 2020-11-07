@@ -27,5 +27,5 @@ def register():
 
 
 def unregister():
-    for module in modules.reverse():
+    for module in reversed(modules):
         module.unregister(node_system)

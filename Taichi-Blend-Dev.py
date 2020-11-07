@@ -7,7 +7,7 @@ bl_info = {
         'name': 'Taichi Blend (dev mode)',
         'description': 'Taichi Blender intergration for creating physic-based animations',
         'author': 'Taichi Developers',
-        'version': (0, 0, 1),
+        'version': (0, 0, 0),
         'blender': (2, 81, 0),
         'location': 'Scripting module',
         'support': 'COMMUNITY',

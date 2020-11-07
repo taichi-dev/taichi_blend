@@ -41,7 +41,11 @@ class TaichiRenderEngine(bpy.types.RenderEngine):
         # defined as a list of pixels, each pixel itself being a list of
         # R,G,B,A values.
 
-        pixels = self.engine.render(self.size_x, self.size_y)
+        view_matrix = [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]
+        window_matrix = [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]
+        perspective_matrix = [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]
+        pixels = self.engine.render(self.size_x, self.size_y, view_matrix,
+                window_matrix, perspective_matrix)
         pixels = pixels.reshape(self.size_x * self.size_y, 4).tolist()
 
         # Here we write the pixel values to the RenderResult

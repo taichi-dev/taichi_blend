@@ -1,9 +1,6 @@
 import bpy
 
 
-import bpy
-
-
 class TaichiRenderUpdateOperator(bpy.types.Operator):
     '''Update Taichi rendering script'''
 
@@ -26,22 +23,6 @@ class TaichiRenderUpdateOperator(bpy.types.Operator):
             return {'CANCELED'}
 
         return {'FINISHED'}
-
-
-def register():
-    bpy.utils.register_class(SimpleOperator)
-
-
-def unregister():
-    bpy.utils.unregister_class(SimpleOperator)
-
-
-if __name__ == "__main__":
-    register()
-
-    # test call
-    bpy.ops.object.simple_operator()
-
 
 
 class TaichiRenderPanel(bpy.types.Panel):
