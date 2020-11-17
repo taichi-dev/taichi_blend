@@ -11,15 +11,13 @@ bl_info = {
         'category': 'Physics',
 }
 
-__all__ = [
-    'package_bundle',
-    'node_system',
-    'render_engine',
+from . import package_bundle, node_system, render_engine
+
+modules = [
+    package_bundle,
+    node_system,
+    render_engine,
 ]
-
-import importlib
-
-modules = [importlib.import_module('.' + x, __name__) for x in __all__]
 
 def register():
     for module in modules:

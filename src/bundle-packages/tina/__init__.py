@@ -73,11 +73,24 @@ def dtype_from_name(name):
 ns_nodes = {}
 
 def ns_register(cls):
-    node_name = cls.ns_name.replace(' ', '_')
-    inputs = cls.ns_inputs.split()
-    outputs = cls.ns_output.split()
-    category = getattr(cls, 'ns_category', 'uncategorized')
+    docs = cls.__doc__.strip().splitlines()
+
+    node_name = None
+    inputs = []
+    outputs = []
+    category = 'uncategorized'
     converter = getattr(cls, 'ns_convert', lambda *x: x)
+
+    for line in docs:
+        line = [l.strip() for l in line.split(':', 1)]
+        if line[0] == 'Name':
+            node_name = line[1].replace(' ', '_')
+        if line[0] == 'Inputs':
+            inputs = line[1].split()
+        if line[0] == 'Output':
+            outputs = line[1].split()
+        if line[0] == 'Category':
+            category = line[1]
 
     type2socket = {
             'm': 'meta',
@@ -125,8 +138,14 @@ def ns_register(cls):
         socket = type2socket[type]
         setattr(Def, f'output_{i + 1}', (name, socket))
 
+    def wrapped(*args):
+        args = converter(*args)
+        return cls(*args)
+
     setattr(Def, 'category', category)
+    setattr(Def, 'wrapped', wrapped)
     ns_nodes[node_name] = Def
+
     return cls
 
 
@@ -150,10 +169,12 @@ class IField:
 @ns_register
 @ti.data_oriented
 class Meta:
-    ns_name = 'make_meta'
-    ns_category = 'meta'
-    ns_inputs = 'shape:i3 dtype:dt vdims:i2'
-    ns_output = 'meta:m'
+    '''
+    Name: make_meta
+    Category: meta
+    Inputs: shape:i3 dtype:dt vdims:i2
+    Output: meta:m
+    '''
 
     def ns_convert(shape, dtype, vdims):
         dtype = dtype_from_name(dtype)
@@ -268,10 +289,12 @@ class IRun:
 
 @ns_register
 class FShape(IShapeField):
-    ns_name = 'specify_meta'
-    ns_category = 'meta'
-    ns_inputs = 'meta:m field:f'
-    ns_output = 'field:mf'
+    '''
+    Name: specify_meta
+    Category: meta
+    Inputs: meta:m field:f
+    Output: field:mf
+    '''
 
     def __init__(self, meta, field):
         assert isinstance(meta, Meta)
@@ -287,10 +310,12 @@ class FShape(IShapeField):
 
 @ns_register
 class FLike(IShapeField):
-    ns_name = 'imitate_meta'
-    ns_category = 'meta'
-    ns_inputs = 'source:mf field:f'
-    ns_output = 'field:mf'
+    '''
+    Name: imitate_meta
+    Category: meta
+    Inputs: source:mf field:f
+    Output: field:mf
+    '''
 
     def __init__(self, src, field):
         assert isinstance(src, IShapeField)
@@ -307,10 +332,12 @@ class FLike(IShapeField):
 
 @ns_register
 class FCache(IShapeField, IRun):
-    ns_name = 'cache_field'
-    ns_category = 'storage'
-    ns_inputs = 'source:mf'
-    ns_output = 'cached:mf'
+    '''
+    Name: cache_field
+    Category: storage
+    Inputs: source:mf
+    Output: cached:mf
+    '''
 
     def __init__(self, src):
         assert isinstance(src, IShapeField)
@@ -331,10 +358,12 @@ class FCache(IShapeField, IRun):
 
 @ns_register
 class FDouble(IShapeField, IRun):
-    ns_name = 'double_buffer'
-    ns_category = 'storage'
-    ns_inputs = 'source:mf'
-    ns_output = 'current:mf'
+    '''
+    Name: double_buffer
+    Category: storage
+    Inputs: source:mf
+    Output: current:mf
+    '''
 
     def __init__(self, src):
         assert isinstance(src, IShapeField)
@@ -363,10 +392,12 @@ class FDouble(IShapeField, IRun):
 
 @ns_register
 class Field(IShapeField):
-    ns_name = 'field_storage'
-    ns_category = 'storage'
-    ns_inputs = 'meta:m'
-    ns_output = 'field:mf'
+    '''
+    Name: field_storage
+    Category: storage
+    Inputs: meta:m
+    Output: field:mf
+    '''
 
     def __init__(self, meta):
         assert isinstance(meta, Meta)
@@ -405,10 +436,12 @@ class Field(IShapeField):
 
 @ns_register
 class FConst(IField):
-    ns_name = 'constant_field'
-    ns_category = 'sampler'
-    ns_inputs = 'value:c'
-    ns_output = 'field:f'
+    '''
+    Name: constant_field
+    Category: sampler
+    Inputs: value:c
+    Output: field:f
+    '''
 
     def __init__(self, value):
         self.value = value
@@ -420,10 +453,12 @@ class FConst(IField):
 
 @ns_register
 class FUniform(IField):
-    ns_name = 'uniform_field'
-    ns_category = 'sampler'
-    ns_inputs = 'value:f'
-    ns_output = 'field:f'
+    '''
+    Name: uniform_field
+    Category: sampler
+    Inputs: value:f
+    Output: field:f
+    '''
 
     def __init__(self, value):
         assert isinstance(value, IField)
@@ -437,10 +472,12 @@ class FUniform(IField):
 
 @ns_register
 class FBound(IShapeField):
-    ns_name = 'bound_sample'
-    ns_category = 'sampler'
-    ns_inputs = 'source:mf'
-    ns_output = 'result:mf'
+    '''
+    Name: bound_sample
+    Category: sampler
+    Inputs: source:mf
+    Output: result:mf
+    '''
 
     def __init__(self, src):
         assert isinstance(src, IShapeField)
@@ -455,10 +492,12 @@ class FBound(IShapeField):
 
 @ns_register
 class FRepeat(IShapeField):
-    ns_name = 'repeat_sample'
-    ns_category = 'sampler'
-    ns_inputs = 'source:mf'
-    ns_output = 'result:mf'
+    '''
+    Name: repeat_sample
+    Category: sampler
+    Inputs: source:mf
+    Output: result:mf
+    '''
 
     def __init__(self, src):
         assert isinstance(src, IShapeField)
@@ -473,10 +512,12 @@ class FRepeat(IShapeField):
 
 @ns_register
 class FMix(IField):
-    ns_name = 'mix_value'
-    ns_category = 'converter'
-    ns_inputs = 'src:f dst:f ksrc:c kdst:c'
-    ns_output = 'result:f'
+    '''
+    Name: mix_value
+    Category: converter
+    Inputs: src:f dst:f ksrc:c kdst:c
+    Output: result:f
+    '''
 
     def __init__(self, src, dst, ksrc=1, kdst=1):
         assert isinstance(src, IField)
@@ -494,10 +535,12 @@ class FMix(IField):
 
 @ns_register
 class FLerp(IField):
-    ns_name = 'lerp_value'
-    ns_category = 'converter'
-    ns_inputs = 'src0:f src1:f fac:f'
-    ns_output = 'result:f'
+    '''
+    Name: lerp_value
+    Category: converter
+    Inputs: src0:f src1:f fac:f
+    Output: result:f
+    '''
 
     def __init__(self, src0, src1, fac):
         assert isinstance(src0, IField)
@@ -516,10 +559,12 @@ class FLerp(IField):
 
 @ns_register
 class FClamp(IField):
-    ns_name = 'value_clamp'
-    ns_category = 'sampler'
-    ns_inputs = 'source:f min:c max:c'
-    ns_output = 'clamped:f'
+    '''
+    Name: value_clamp
+    Category: sampler
+    Inputs: source:f min:c max:c
+    Output: clamped:f
+    '''
 
     def __init__(self, src, min=0, max=1):
         assert isinstance(src, IField)
@@ -535,10 +580,12 @@ class FClamp(IField):
 
 @ns_register
 class FRange(IField):
-    ns_name = 'map_value'
-    ns_category = 'converter'
-    ns_inputs = 'value:f src0:c src1:c dst0:c dst1:c clamp:b'
-    ns_output = 'result:f'
+    '''
+    Name: map_value
+    Category: converter
+    Inputs: value:f src0:c src1:c dst0:c dst1:c clamp:b
+    Output: result:f
+    '''
 
     def __init__(self, value, src0=0, src1=1, dst0=0, dst1=1, clamp=False):
         assert isinstance(value, IField)
@@ -560,10 +607,12 @@ class FRange(IField):
 
 @ns_register
 class FMultiply(IField):
-    ns_name = 'multiply_value'
-    ns_category = 'converter'
-    ns_inputs = 'lhs:f rhs:f'
-    ns_output = 'result:f'
+    '''
+    Name: multiply_value
+    Category: converter
+    Inputs: lhs:f rhs:f
+    Output: result:f
+    '''
 
     def __init__(self, lhs, rhs):
         assert isinstance(lhs, IField)
@@ -579,10 +628,12 @@ class FMultiply(IField):
 
 @ns_register
 class FFunc(IField):
-    ns_name = 'fieldwise_function'
-    ns_category = 'converter'
-    ns_inputs = '*args:f'
-    ns_output = 'result:f'
+    '''
+    Name: fieldwise_function
+    Category: converter
+    Inputs: *args:f
+    Output: result:f
+    '''
 
     def __init__(self, func, *args):
         assert all(isinstance(a, IField) for a in args)
@@ -597,10 +648,12 @@ class FFunc(IField):
 
 @ns_register
 class FVChan(IField):
-    ns_name = 'vector_component'
-    ns_category = 'converter'
-    ns_inputs = 'vector:vf channel:i'
-    ns_output = 'value:f'
+    '''
+    Name: vector_component
+    Category: converter
+    Inputs: vector:vf channel:i
+    Output: value:f
+    '''
 
     def __init__(self, field, channel):
         assert isinstance(field, IField)
@@ -615,10 +668,12 @@ class FVChan(IField):
 
 @ns_register
 class FVPack(IField):
-    ns_name = 'pack_vector'
-    ns_category = 'converter'
-    ns_inputs = '*comps:f'
-    ns_output = 'vector:vf'
+    '''
+    Name: pack_vector
+    Category: converter
+    Inputs: *comps:f
+    Output: vector:vf
+    '''
 
     def __init__(self, *args):
         assert all(isinstance(a, IField) for a in args)
@@ -633,10 +688,12 @@ class FVPack(IField):
 
 @ns_register
 class FIndex(IField):
-    ns_name = 'get_field_index'
-    ns_category = 'sampler'
-    ns_inputs = ''
-    ns_output = 'index:vf'
+    '''
+    Name: get_field_index
+    Category: sampler
+    Inputs: 
+    Output: index:vf
+    '''
 
     def __init__(self):
         pass
@@ -648,10 +705,12 @@ class FIndex(IField):
 
 @ns_register
 class FShuffle(IField):
-    ns_name = 'field_shuffle'
-    ns_category = 'sampler'
-    ns_inputs = 'field:f index:vf'
-    ns_output = 'value:f'
+    '''
+    Name: field_shuffle
+    Category: sampler
+    Inputs: field:f index:vf
+    Output: value:f
+    '''
 
     def __init__(self, field, index):
         assert isinstance(field, IField)
@@ -667,10 +726,12 @@ class FShuffle(IField):
 
 @ns_register
 class FBilerp(IField):
-    ns_name = 'field_bilerp'
-    ns_category = 'sampler'
-    ns_inputs = 'field:f pos:vf'
-    ns_output = 'value:f'
+    '''
+    Name: field_bilerp
+    Category: sampler
+    Inputs: field:f pos:vf
+    Output: value:f
+    '''
 
     def __init__(self, field, pos):
         assert isinstance(field, IField)
@@ -686,10 +747,12 @@ class FBilerp(IField):
 
 @ns_register
 class FVTrans(IField):
-    ns_name = 'affine_transformation'
-    ns_category = 'converter'
-    ns_inputs = 'vector:vf matrix:vf offset:vf'
-    ns_output = 'result:vf'
+    '''
+    Name: affine_transformation
+    Category: converter
+    Inputs: vector:vf matrix:vf offset:vf
+    Output: result:vf
+    '''
 
     def __init__(self, vec, mat, off):
         assert isinstance(vec, IField)
@@ -707,10 +770,12 @@ class FVTrans(IField):
 
 @ns_register
 class FChessboard(IField):
-    ns_name = 'chessboard_texture'
-    ns_category = 'texture'
-    ns_inputs = 'size:i'
-    ns_output = 'sample:f'
+    '''
+    Name: chessboard_texture
+    Category: texture
+    Inputs: size:i
+    Output: sample:f
+    '''
 
     def __init__(self, size):
         self.size = size
@@ -722,10 +787,12 @@ class FChessboard(IField):
 
 @ns_register
 class FGaussDist(IField):
-    ns_name = 'gaussian_distrubtion'
-    ns_category = 'texture'
-    ns_inputs = 'center:c2 radius:c height:c'
-    ns_output = 'sample:f'
+    '''
+    Name: gaussian_distrubtion
+    Category: texture
+    Inputs: center:c2 radius:c height:c
+    Output: sample:f
+    '''
 
     def __init__(self, center, radius, height=1):
         self.center = tovector(center)
@@ -740,10 +807,12 @@ class FGaussDist(IField):
 
 @ns_register
 class FLaplacian(IShapeField):
-    ns_name = 'field_laplacian'
-    ns_category = 'stencil'
-    ns_inputs = 'source:f'
-    ns_output = 'laplace:f'
+    '''
+    Name: field_laplacian
+    Category: stencil
+    Inputs: source:f
+    Output: laplace:f
+    '''
 
     def __init__(self, src):
         assert isinstance(src, IShapeField)
@@ -763,10 +832,12 @@ class FLaplacian(IShapeField):
 
 @ns_register
 class FGradient(IShapeField):
-    ns_name = 'field_gradient'
-    ns_category = 'stencil'
-    ns_inputs = 'source:f'
-    ns_output = 'gradient:vf'
+    '''
+    Name: field_gradient
+    Category: stencil
+    Inputs: source:f
+    Output: gradient:vf
+    '''
 
     def __init__(self, src):
         assert isinstance(src, IShapeField)
@@ -786,10 +857,12 @@ class FGradient(IShapeField):
 
 @ns_register
 class RFCopy(IRun):
-    ns_name = 'copy_field'
-    ns_category = 'storage'
-    ns_inputs = 'dest:mf source:f'
-    ns_output = 'task:t'
+    '''
+    Name: copy_field
+    Category: storage
+    Inputs: dest:mf source:f
+    Output: task:t
+    '''
 
     def __init__(self, dst, src):
         assert isinstance(dst, IShapeField)
@@ -806,10 +879,12 @@ class RFCopy(IRun):
 
 @ns_register
 class RFAccumate(IRun):
-    ns_name = 'accumate_field'
-    ns_category = 'storage'
-    ns_inputs = 'dest:mf source:f'
-    ns_output = 'task:t'
+    '''
+    Name: accumate_field
+    Category: storage
+    Inputs: dest:mf source:f
+    Output: task:t
+    '''
 
     def __init__(self, dst, src):
         assert isinstance(dst, IShapeField)
@@ -826,10 +901,12 @@ class RFAccumate(IRun):
 
 @ns_register
 class RMerge(IRun):
-    ns_name = 'merge_tasks'
-    ns_category = 'scheduler'
-    ns_inputs = '*tasks:t'
-    ns_output = 'merged:t'
+    '''
+    Name: merge_tasks
+    Category: scheduler
+    Inputs: *tasks:t
+    Output: merged:t
+    '''
 
     def __init__(self, *tasks):
         assert all(isinstance(t, IRun) for t in tasks)
@@ -843,10 +920,12 @@ class RMerge(IRun):
 
 @ns_register
 class RTimes(IRun):
-    ns_name = 'repeat_task'
-    ns_category = 'scheduler'
-    ns_inputs = 'task:t times:i'
-    ns_output = 'repeated:t'
+    '''
+    Name: repeat_task
+    Category: scheduler
+    Inputs: task:t times:i
+    Output: repeated:t
+    '''
 
     def __init__(self, task, times):
         assert isinstance(task, IRun)
@@ -862,10 +941,12 @@ class RTimes(IRun):
 @ns_register
 @ti.data_oriented
 class Canvas:
-    ns_name = 'canvas_visualize'
-    ns_category = 'output'
-    ns_inputs = 'image:vf resolution:i2'
-    ns_output = ''
+    '''
+    Name: canvas_visualize
+    Category: output
+    Inputs: image:vf res:i2
+    Output:
+        '''
 
     def __init__(self, img, res=None):
         assert isinstance(img, IShapeField)
