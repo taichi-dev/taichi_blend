@@ -5,9 +5,14 @@ from . import base
 
 option_types = {
     'int': bpy.props.IntProperty,
+    'float': bpy.props.FloatProperty,
+    'bool': bpy.props.BoolProperty,
+    'str': bpy.props.StringProperty,
     'enum': bpy.props.EnumProperty,
     'vec_int_2': bpy.props.IntVectorProperty,
     'vec_int_3': bpy.props.IntVectorProperty,
+    'vec_float_2': bpy.props.FloatVectorProperty,
+    'vec_float_3': bpy.props.FloatVectorProperty,
     'search_object': bpy.props.StringProperty
 }
 
@@ -66,7 +71,7 @@ def register_node(node_system_name, node_def, node_system):
         name_words = get_words(option_system_name)
         option_name = ' '.join(name_words)
         prop_class = option_types[option_type]
-        if option_type == 'int':
+        if option_type in ['int', 'float', 'bool', 'str']:
             prop = prop_class(name=option_name)
         elif option_type.startswith('vec'):
             size = int(option_type[-1])
@@ -82,6 +87,8 @@ def register_node(node_system_name, node_def, node_system):
             prop = prop_class(name=option_name, items=items)
         elif option_type == 'search_object':
             prop = prop_class(name=option_name)
+        else:
+            assert False, option_type
         props[option_system_name] = prop
         props_types[option_system_name] = option_type
         props_names[option_system_name] = option_name

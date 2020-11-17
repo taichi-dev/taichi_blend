@@ -1,12 +1,12 @@
 import bpy
 
-from . import field, value, sampler
+from . import field, task, meta
 
 
 modules = [
     field,
-    value,
-    sampler
+    task,
+    meta,
 ]
 
 
