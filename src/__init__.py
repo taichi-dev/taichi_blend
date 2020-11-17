@@ -13,7 +13,6 @@ bl_info = {
 
 __all__ = [
     'package_bundle',
-    #'developer_utils',
     'node_system',
     'render_engine',
 ]
