@@ -7,6 +7,7 @@ option_types = {
     'int': bpy.props.IntProperty,
     'enum': bpy.props.EnumProperty,
     'vec_int_2': bpy.props.IntVectorProperty,
+    'vec_int_3': bpy.props.IntVectorProperty,
     'search_object': bpy.props.StringProperty
 }
 

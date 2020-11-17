@@ -5,7 +5,6 @@ linux) PIPPLAT=manylinux1_x86_64;;
 win) PIPPLAT=win_amd64;;
 osx) PIPPLAT=macosx_10_14_x86_64;;
 esac
- 
 
 rm -rf build
 mkdir -p build
