@@ -17,8 +17,9 @@ __all__ = [
     'render_engine',
 ]
 
-from . import *
-modules = [globals()[x] for x in __all__]
+import importlib
+
+modules = [importlib.import_module('.' + x, __name__) for x in __all__]
 
 def register():
     for module in modules:
