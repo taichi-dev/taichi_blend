@@ -17,7 +17,7 @@ def make_socket(name, color):
 sockets = {
     'field': (0.63, 0.63, 0.63),
     'vector_field': (0.39, 0.39, 0.78),
-    'meta_field': (0.39, 0.78, 0.39),
+    'object_field': (0.39, 0.78, 0.39),
     'task': (0.78, 0.39, 0.39),
     'meta': (0.78, 0.78, 0.16),
     'any': (0.39, 0.39, 0.39),

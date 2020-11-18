@@ -95,7 +95,7 @@ def ns_register(cls):
     type2socket = {
             'm': 'meta',
             'f': 'field',
-            'mf': 'meta_field',
+            'of': 'object_field',
             'vf': 'vector_field',
             't': 'task',
             'a': 'any',
@@ -173,6 +173,8 @@ def ns_register(cls):
 class IField:
     is_taichi_class = True
 
+    meta = NotImplemented
+
     @ti.func
     def _subscript(self, I):
         raise NotImplementedError
@@ -180,6 +182,11 @@ class IField:
     def subscript(self, *indices):
         I = tovector(indices)
         return self._subscript(I)
+
+    @ti.func
+    def __iter__(self):
+        for I in ti.grouped(ti.ndrange(*self.meta.shape)):
+            yield I
 
 
 @ns_register
@@ -283,15 +290,6 @@ class C:
         return 'C'
 
 
-class IShapeField(IField):
-    meta = NotImplemented
-
-    @ti.func
-    def __iter__(self):
-        for I in ti.grouped(ti.ndrange(*self.meta.shape)):
-            yield I
-
-
 @ti.data_oriented
 class IRun:
     @ti.kernel
@@ -300,12 +298,12 @@ class IRun:
 
 
 @ns_register
-class FSpec(IShapeField):
+class FSpec(IField):
     '''
     Name: specify_meta
     Category: meta
     Inputs: meta:m field:f
-    Output: field:mf
+    Output: field:f
     '''
 
     def __init__(self, meta, field):
@@ -325,27 +323,27 @@ class FMeta(Meta):
     '''
     Name: get_meta
     Category: meta
-    Inputs: field:mf
+    Inputs: field:f
     Output: meta:m
     '''
 
     def __init__(self, field):
-        assert isinstance(field, IShapeField)
+        assert isinstance(field, IField)
 
         super().__init__(field.meta.shape, field.meta.dtype, field.meta.vdims)
 
 
 @ns_register
-class FLike(IShapeField):
+class FLike(IField):
     '''
     Name: imitate_meta
     Category: meta
-    Inputs: like:mf field:f
-    Output: field:mf
+    Inputs: like:f field:f
+    Output: field:f
     '''
 
     def __init__(self, like, field):
-        assert isinstance(like, IShapeField)
+        assert isinstance(like, IField)
         assert isinstance(field, IField)
 
         self.field = field
@@ -358,16 +356,16 @@ class FLike(IShapeField):
 
 
 @ns_register
-class FCache(IShapeField, IRun):
+class FCache(IField, IRun):
     '''
     Name: cache_field
     Category: storage
-    Inputs: source:mf
-    Output: cached:mf
+    Inputs: source:f
+    Output: cached:f
     '''
 
     def __init__(self, src):
-        assert isinstance(src, IShapeField)
+        assert isinstance(src, IField)
 
         self.src = src
         self.meta = self.src.meta
@@ -384,12 +382,12 @@ class FCache(IShapeField, IRun):
 
 
 @ns_register
-class FDouble(IShapeField, IRun):
+class FDouble(IField, IRun):
     '''
     Name: double_buffer
     Category: storage
     Inputs: meta:m
-    Output: current:mf update:t
+    Output: current:f update:t
     '''
 
     def __init__(self, meta):
@@ -419,12 +417,12 @@ class FDouble(IShapeField, IRun):
 
 
 @ns_register
-class Field(IShapeField):
+class Field(IField):
     '''
     Name: field_storage
     Category: storage
     Inputs: meta:m
-    Output: field:mf
+    Output: field:f
     '''
 
     def __init__(self, meta):
@@ -499,16 +497,16 @@ class FUniform(IField):
 
 
 @ns_register
-class FBound(IShapeField):
+class FBound(IField):
     '''
     Name: bound_sample
     Category: sampler
-    Inputs: source:mf
-    Output: result:mf
+    Inputs: source:f
+    Output: result:f
     '''
 
     def __init__(self, src):
-        assert isinstance(src, IShapeField)
+        assert isinstance(src, IField)
 
         self.src = src
         self.meta = self.src.meta
@@ -519,16 +517,16 @@ class FBound(IShapeField):
 
 
 @ns_register
-class FRepeat(IShapeField):
+class FRepeat(IField):
     '''
     Name: repeat_sample
     Category: sampler
-    Inputs: source:mf
-    Output: result:mf
+    Inputs: source:f
+    Output: result:f
     '''
 
     def __init__(self, src):
-        assert isinstance(src, IShapeField)
+        assert isinstance(src, IField)
 
         self.src = src
         self.meta = self.src.meta
@@ -834,7 +832,7 @@ class FGaussDist(IField):
 
 
 @ns_register
-class FLaplacian(IShapeField):
+class FLaplacian(IField):
     '''
     Name: field_laplacian
     Category: stencil
@@ -843,7 +841,7 @@ class FLaplacian(IShapeField):
     '''
 
     def __init__(self, src):
-        assert isinstance(src, IShapeField)
+        assert isinstance(src, IField)
 
         self.src = src
         self.meta = self.src.meta
@@ -859,7 +857,7 @@ class FLaplacian(IShapeField):
 
 
 @ns_register
-class FGradient(IShapeField):
+class FGradient(IField):
     '''
     Name: field_gradient
     Category: stencil
@@ -868,7 +866,7 @@ class FGradient(IShapeField):
     '''
 
     def __init__(self, src):
-        assert isinstance(src, IShapeField)
+        assert isinstance(src, IField)
 
         self.src = src
         self.meta = self.src.meta
@@ -888,12 +886,12 @@ class RFCopy(IRun):
     '''
     Name: copy_field
     Category: task
-    Inputs: dest:mf source:f
+    Inputs: dest:f source:f
     Output: task:t
     '''
 
     def __init__(self, dst, src):
-        assert isinstance(dst, IShapeField)
+        assert isinstance(dst, IField)
         assert isinstance(src, IField)
 
         self.dst = dst
@@ -910,12 +908,12 @@ class RFAccumate(IRun):
     '''
     Name: accumate_field
     Category: task
-    Inputs: dest:mf source:f
+    Inputs: dest:f source:f
     Output: task:t
     '''
 
     def __init__(self, dst, src):
-        assert isinstance(dst, IShapeField)
+        assert isinstance(dst, IField)
         assert isinstance(src, IField)
 
         self.dst = dst
@@ -992,7 +990,7 @@ class RCanvas(IRun):
     '''
 
     def __init__(self, img, update, res=None):
-        assert isinstance(img, IShapeField)
+        assert isinstance(img, IField)
         assert isinstance(update, IRun)
 
         self.img = img
