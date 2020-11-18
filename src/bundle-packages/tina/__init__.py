@@ -70,103 +70,114 @@ def dtype_from_name(name):
     assert False, name
 
 
-ns_nodes = {}
+@eval('lambda x: x()')
+class A:
+    def __init__(self):
+        self.nodes = {}
 
-def ns_register(cls):
-    docs = cls.__doc__.strip().splitlines()
+    def __getattr__(self, name):
+        if name not in self.nodes:
+            raise AttributeError(f'Cannot find any node matches name `{name}`')
+        return self.nodes[name]
 
-    node_name = None
-    inputs = []
-    outputs = []
-    category = 'uncategorized'
-    converter = getattr(cls, 'ns_convert', lambda *x: x)
+    def register(self, cls):
+        docs = cls.__doc__.strip().splitlines()
 
-    for line in docs:
-        line = [l.strip() for l in line.split(':', 1)]
-        if line[0] == 'Name':
-            node_name = line[1].replace(' ', '_')
-        if line[0] == 'Inputs':
-            inputs = line[1].split()
-        if line[0] == 'Output':
-            outputs = line[1].split()
-        if line[0] == 'Category':
-            category = line[1]
+        node_name = None
+        inputs = []
+        outputs = []
+        category = 'uncategorized'
+        converter = getattr(cls, 'ns_convert', lambda *x: x)
 
-    type2socket = {
-            'm': 'meta',
-            'f': 'field',
-            'of': 'object_field',
-            'vf': 'vector_field',
-            't': 'task',
-            'a': 'any',
-    }
-    type2option = {
-            'dt': 'enum',
-            'i': 'int',
-            'c': 'float',
-            'b': 'bool',
-            's': 'str',
-            'so': 'search_object',
-            'i2': 'vec_int_2',
-            'i3': 'vec_int_3',
-            'c2': 'vec_float_2',
-            'c3': 'vec_float_3',
-    }
-    type2items = {
-            'dt': 'float int i8 i16 i32 i64 u8 u16 u32 u64 f32 f64'.split(),
-    }
+        for line in docs:
+            line = [l.strip() for l in line.split(':', 1)]
+            if line[0] == 'Name':
+                node_name = line[1].replace(' ', '_')
+            if line[0] == 'Inputs':
+                inputs = line[1].split()
+            if line[0] == 'Output':
+                outputs = line[1].split()
+            if line[0] == 'Category':
+                category = line[1]
 
-    class Def:
-        pass
+        if node_name in self.nodes:
+            raise KeyError(f'Node with name `{node_name}` already registered')
 
-    if len(inputs):
-        name, type = inputs[-1].split(':', 1)
-        if name.startswith('*') and name.endswith('s'):
-            name = name[1:-1]
-            inputs.pop(0)
-            for i in range(2):
-                inputs.append(f'{name}{i}:{type}')
+        type2socket = {
+                'm': 'meta',
+                'f': 'field',
+                'of': 'object_field',
+                'vf': 'vector_field',
+                't': 'task',
+                'a': 'any',
+        }
+        type2option = {
+                'dt': 'enum',
+                'i': 'int',
+                'c': 'float',
+                'b': 'bool',
+                's': 'str',
+                'so': 'search_object',
+                'i2': 'vec_int_2',
+                'i3': 'vec_int_3',
+                'c2': 'vec_float_2',
+                'c3': 'vec_float_3',
+        }
+        type2items = {
+                'dt': 'float int i8 i16 i32 i64 u8 u16 u32 u64 f32 f64'.split(),
+        }
 
-    lut = []
-    iopt, isoc = 0, 0
-    for i, arg in enumerate(inputs):
-        name, type = arg.split(':', 1)
-        if type in type2option:
-            option = type2option[type]
-            lut.append((True, iopt))
-            iopt += 1
-            setattr(Def, f'option_{iopt}', (name, option))
-            if option == 'enum':
-                items = tuple(type2items[type])
-                setattr(Def, f'items_{iopt}', items)
-        else:
-            socket = type2socket[type]
-            lut.append((False, isoc))
-            isoc += 1
-            setattr(Def, f'input_{isoc}', (name, socket))
+        class Def:
+            pass
 
-    for i, arg in enumerate(outputs):
-        name, type = arg.split(':', 1)
-        socket = type2socket[type]
-        setattr(Def, f'output_{i + 1}', (name, socket))
+        if len(inputs):
+            name, type = inputs[-1].split(':', 1)
+            if name.startswith('*') and name.endswith('s'):
+                name = name[1:-1]
+                inputs.pop(0)
+                for i in range(2):
+                    inputs.append(f'{name}{i}:{type}')
 
-    def wrapped(self, inputs, options):
-        # print('+++', inputs, options)
-        args = []
-        for isopt, index in lut:
-            if isopt:
-                args.append(options[index])
+        lut = []
+        iopt, isoc = 0, 0
+        for i, arg in enumerate(inputs):
+            name, type = arg.split(':', 1)
+            if type in type2option:
+                option = type2option[type]
+                lut.append((True, iopt))
+                iopt += 1
+                setattr(Def, f'option_{iopt}', (name, option))
+                if option == 'enum':
+                    items = tuple(type2items[type])
+                    setattr(Def, f'items_{iopt}', items)
             else:
-                args.append(inputs[index])
-        # print('===', cls, args)
-        args = converter(*args)
-        return cls(*args)
+                socket = type2socket[type]
+                lut.append((False, isoc))
+                isoc += 1
+                setattr(Def, f'input_{isoc}', (name, socket))
 
-    setattr(Def, 'category', category)
-    setattr(Def, 'wrapped', wrapped)
-    ns_nodes[node_name] = Def
+        for i, arg in enumerate(outputs):
+            name, type = arg.split(':', 1)
+            socket = type2socket[type]
+            setattr(Def, f'output_{i + 1}', (name, socket))
 
-    return cls
+        def wrapped(self, inputs, options):
+            # print('+++', inputs, options)
+            args = []
+            for isopt, index in lut:
+                if isopt:
+                    args.append(options[index])
+                else:
+                    args.append(inputs[index])
+            # print('===', cls, args)
+            args = converter(*args)
+            return cls(*args)
+
+        setattr(Def, 'category', category)
+        setattr(Def, 'wrapped', wrapped)
+        self.nodes[node_name] = Def
+
+        return cls
 
 
 @ti.data_oriented
@@ -189,7 +200,7 @@ class IField:
             yield I
 
 
-@ns_register
+@A.register
 @ti.data_oriented
 class Meta:
     '''
@@ -215,10 +226,13 @@ class Meta:
 
     is_taichi_class = True
 
-    def __init__(self, shape, dtype=None, vdims=None):
+    def __init__(self, shape=None, dtype=None, vdims=None):
         self.dtype = dtype
         self.shape = totuple(shape)
         self.vdims = totuple(vdims)
+
+    def copy(self, other):
+        Meta.__init__(self, other.shape, other.dtype, other.vdims)
 
     def __repr__(self):
         dtype = self.dtype
@@ -227,6 +241,33 @@ class Meta:
         elif hasattr(dtype, '__name__'):
             dtype = dtype.__name__
         return f'Meta({dtype}, {list(self.vdims)}, {list(self.shape)})'
+
+
+@A.register
+class MEdit(Meta):
+    '''
+    Name: edit_meta
+    Category: meta
+    Inputs: meta:m shape:i3 dtype:dt vdims:i2 eshape:b edtype:b evdims:b
+    Output: meta:m
+    '''
+
+    def __init__(self, meta, shape=None, dtype=None, vdims=None,
+            eshape=None, edtype=None, evdims=None):
+        if eshape is None:
+            eshape = shape is not None
+        if edtype is None:
+            edtype = dtype is not None
+        if evdims is None:
+            evdims = vdims is not None
+
+        super().copy(meta)
+        if edtype:
+            self.dtype = dtype
+        if eshape:
+            self.shape = totuple(shape)
+        if evdims:
+            self.vdims = totuple(vdims)
 
 
 @eval('lambda x: x()')
@@ -297,7 +338,7 @@ class IRun:
         raise NotImplementedError
 
 
-@ns_register
+@A.register
 class FSpec(IField):
     '''
     Name: specify_meta
@@ -318,7 +359,7 @@ class FSpec(IField):
         return self.field[I]
 
 
-@ns_register
+@A.register
 class FMeta(Meta):
     '''
     Name: get_meta
@@ -330,38 +371,16 @@ class FMeta(Meta):
     def __init__(self, field):
         assert isinstance(field, IField)
 
-        super().__init__(field.meta.shape, field.meta.dtype, field.meta.vdims)
+        super().copy(field.meta)
 
 
-@ns_register
-class FLike(IField):
-    '''
-    Name: imitate_meta
-    Category: meta
-    Inputs: like:f field:f
-    Output: field:f
-    '''
-
-    def __init__(self, like, field):
-        assert isinstance(like, IField)
-        assert isinstance(field, IField)
-
-        self.field = field
-        self.like = like
-        self.meta = self.like.meta
-
-    @ti.func
-    def _subscript(self, I):
-        return self.field[I]
-
-
-@ns_register
+@A.register
 class FCache(IField, IRun):
     '''
     Name: cache_field
     Category: storage
     Inputs: source:f
-    Output: cached:f
+    Output: cached:f update:t
     '''
 
     def __init__(self, src):
@@ -381,7 +400,7 @@ class FCache(IField, IRun):
         return self.buf[I]
 
 
-@ns_register
+@A.register
 class FDouble(IField, IRun):
     '''
     Name: double_buffer
@@ -416,7 +435,7 @@ class FDouble(IField, IRun):
         return self.cur[I]
 
 
-@ns_register
+@A.register
 class Field(IField):
     '''
     Name: field_storage
@@ -460,7 +479,7 @@ class Field(IField):
         return getattr(self.core, attr)
 
 
-@ns_register
+@A.register
 class FConst(IField):
     '''
     Name: constant_field
@@ -477,7 +496,7 @@ class FConst(IField):
         return self.value
 
 
-@ns_register
+@A.register
 class FUniform(IField):
     '''
     Name: uniform_field
@@ -496,7 +515,7 @@ class FUniform(IField):
         return self.value[None]
 
 
-@ns_register
+@A.register
 class FBound(IField):
     '''
     Name: bound_sample
@@ -509,14 +528,14 @@ class FBound(IField):
         assert isinstance(src, IField)
 
         self.src = src
-        self.meta = self.src.meta
+        self.meta = FMeta(self.src)
 
     @ti.func
     def _subscript(self, I):
         return self.src[clamp(I, 0, ti.Vector(self.meta.shape) - 1)]
 
 
-@ns_register
+@A.register
 class FRepeat(IField):
     '''
     Name: repeat_sample
@@ -529,14 +548,14 @@ class FRepeat(IField):
         assert isinstance(src, IField)
 
         self.src = src
-        self.meta = self.src.meta
+        self.meta = FMeta(self.src)
 
     @ti.func
     def _subscript(self, I):
         return self.src[I % ti.Vector(self.meta.shape)]
 
 
-@ns_register
+@A.register
 class FMix(IField):
     '''
     Name: mix_value
@@ -553,13 +572,14 @@ class FMix(IField):
         self.dst = dst
         self.ksrc = ksrc
         self.kdst = kdst
+        self.meta = FMeta(self.src)
 
     @ti.func
     def _subscript(self, I):
         return self.src[I] * self.ksrc + self.dst[I] * self.kdst
 
 
-@ns_register
+@A.register
 class FLerp(IField):
     '''
     Name: lerp_value
@@ -576,6 +596,7 @@ class FLerp(IField):
         self.src0 = src0
         self.src1 = src1
         self.fac = fac
+        self.meta = FMeta(self.fac)
 
     @ti.func
     def _subscript(self, I):
@@ -583,7 +604,7 @@ class FLerp(IField):
         return self.src1[I] * k + self.src0[I] * (1 - k)
 
 
-@ns_register
+@A.register
 class FClamp(IField):
     '''
     Name: clamp_value
@@ -598,13 +619,14 @@ class FClamp(IField):
         self.src = src
         self.min = min
         self.max = max
+        self.meta = FMeta(self.src)
 
     @ti.func
     def _subscript(self, I):
         return clamp(self.src[I], self.min, self.max)
 
 
-@ns_register
+@A.register
 class FRange(IField):
     '''
     Name: map_value
@@ -622,6 +644,7 @@ class FRange(IField):
         self.dst0 = dst0
         self.dst1 = dst1
         self.clamp = clamp
+        self.meta = FMeta(self.value)
 
     @ti.func
     def _subscript(self, I):
@@ -631,7 +654,7 @@ class FRange(IField):
         return self.dst1 * k + self.dst0 * (1 - k)
 
 
-@ns_register
+@A.register
 class FMultiply(IField):
     '''
     Name: fieldwise_multiply
@@ -646,13 +669,14 @@ class FMultiply(IField):
 
         self.lhs = lhs
         self.rhs = rhs
+        self.meta = FMeta(self.lhs)
 
     @ti.func
     def _subscript(self, I):
         return self.lhs[I] * self.rhs[I]
 
 
-@ns_register
+@A.register
 class FFunc(IField):
     '''
     Name: fieldwise_function
@@ -666,14 +690,16 @@ class FFunc(IField):
 
         self.func = func
         self.args = args
+        if len(self.args):
+            self.meta = FMeta(self.args[0])
 
     @ti.func
     def _subscript(self, I):
         return self.func(*[a[I] for a in self.args])
 
 
-@ns_register
-class FVChan(IField):
+@A.register
+class FVChannel(IField):
     '''
     Name: vector_component
     Category: converter
@@ -686,13 +712,14 @@ class FVChan(IField):
 
         self.field = field
         self.channel = channel
+        self.meta = MEdit(FMeta(self.field), vdims=())
 
     @ti.func
     def _subscript(self, I):
         return self.field[I][self.channel]
 
 
-@ns_register
+@A.register
 class FVPack(IField):
     '''
     Name: pack_vector
@@ -705,6 +732,8 @@ class FVPack(IField):
         assert all(isinstance(a, IField) for a in args)
 
         self.args = args
+        if len(self.args):
+            self.meta = FMeta(self.args[0])
 
     @ti.func
     def _subscript(self, I):
@@ -712,7 +741,7 @@ class FVPack(IField):
         return vconcat(*args)
 
 
-@ns_register
+@A.register
 class FIndex(IField):
     '''
     Name: get_field_index
@@ -729,7 +758,7 @@ class FIndex(IField):
         return I
 
 
-@ns_register
+@A.register
 class FShuffle(IField):
     '''
     Name: field_shuffle
@@ -744,13 +773,14 @@ class FShuffle(IField):
 
         self.field = field
         self.index = index
+        self.meta = FMeta(self.index)
 
     @ti.func
     def _subscript(self, I):
         return self.field[self.index[I]]
 
 
-@ns_register
+@A.register
 class FBilerp(IField):
     '''
     Name: field_bilerp
@@ -765,13 +795,14 @@ class FBilerp(IField):
 
         self.field = field
         self.pos = pos
+        self.meta = FMeta(self.pos)
 
     @ti.func
     def _subscript(self, I):
         return bilerp(self.field, self.pos[I])
 
 
-@ns_register
+@A.register
 class FVTrans(IField):
     '''
     Name: affine_transformation
@@ -788,13 +819,14 @@ class FVTrans(IField):
         self.vec = vec
         self.mat = mat
         self.off = off
+        self.meta = FMeta(self.vec)
 
     @ti.func
     def _subscript(self, I):
         return self.mat[I] @ self.vec[I] + self.off[I]
 
 
-@ns_register
+@A.register
 class FChessboard(IField):
     '''
     Name: chessboard_texture
@@ -811,7 +843,24 @@ class FChessboard(IField):
         return (I // self.size).sum() % 2
 
 
-@ns_register
+@A.register
+class FRandom(IField):
+    '''
+    Name: random_generator
+    Category: texture
+    Inputs:
+    Output: sample:f
+    '''
+
+    def __init__(self):
+        pass
+
+    @ti.func
+    def _subscript(self, I):
+        return ti.random()
+
+
+@A.register
 class FGaussDist(IField):
     '''
     Name: gaussian_distrubtion
@@ -831,7 +880,7 @@ class FGaussDist(IField):
         return self.height * ti.exp(-r2)
 
 
-@ns_register
+@A.register
 class FLaplacian(IField):
     '''
     Name: field_laplacian
@@ -844,7 +893,7 @@ class FLaplacian(IField):
         assert isinstance(src, IField)
 
         self.src = src
-        self.meta = self.src.meta
+        self.meta = FMeta(self.src)
 
     @ti.func
     def _subscript(self, I):
@@ -856,7 +905,7 @@ class FLaplacian(IField):
         return res / (2 * dim)
 
 
-@ns_register
+@A.register
 class FGradient(IField):
     '''
     Name: field_gradient
@@ -869,19 +918,19 @@ class FGradient(IField):
         assert isinstance(src, IField)
 
         self.src = src
-        self.meta = self.src.meta
+        self.dim = len(self.src.meta.shape)
+        self.meta = MEdit(FMeta(self.src), vdims=self.dim)
 
     @ti.func
     def _subscript(self, I):
-        dim = ti.static(len(self.meta.shape))
-        res = ti.Vector.zero(self.meta.dtype, dim)
-        for i in ti.static(range(dim)):
-            D = ti.Vector.unit(dim, i)
+        res = ti.Vector.zero(self.meta.dtype, self.dim)
+        for i in ti.static(range(self.dim)):
+            D = ti.Vector.unit(self.dim, i)
             res[i] = self.src[I + D] - self.src[I - D]
         return res
 
 
-@ns_register
+@A.register
 class RFCopy(IRun):
     '''
     Name: copy_field
@@ -903,7 +952,7 @@ class RFCopy(IRun):
             self.dst[I] = self.src[I]
 
 
-@ns_register
+@A.register
 class RFAccumate(IRun):
     '''
     Name: accumate_field
@@ -925,7 +974,7 @@ class RFAccumate(IRun):
             self.dst[I] += self.src[I]
 
 
-@ns_register
+@A.register
 class RMerge(IRun):
     '''
     Name: merge_tasks
@@ -944,7 +993,7 @@ class RMerge(IRun):
             t.run()
 
 
-@ns_register
+@A.register
 class RTimes(IRun):
     '''
     Name: repeat_task
@@ -964,7 +1013,7 @@ class RTimes(IRun):
             self.task.run()
 
 
-@ns_register
+@A.register
 class RNull(IRun):
     '''
     Name: null_task
@@ -980,7 +1029,7 @@ class RNull(IRun):
         pass
 
 
-@ns_register
+@A.register
 class RCanvas(IRun):
     '''
     Name: canvas_visualize
@@ -1042,32 +1091,55 @@ class RCanvas(IRun):
             gui.show()
 
 
-@ns_register
-class ROutput(IRun):
+@A.register
+class RFPrint(IRun):
     '''
-    Name: output_task
+    Name: console_print
     Category: output
-    Inputs: task:t
-    Output:
+    Inputs: field:f
+    Output: task:t
     '''
-    def __init__(self, task):
-        assert isinstance(task, IRun)
-        self.task = task
+
+    def __init__(self, img):
+        assert isinstance(img, IField)
+
+        self.img = img
 
     def run(self):
-        self.task.run()
+        print(self.img)
 
 
+@A.register
 def FLaplacianBlur(x):
-    return FLike(x, FMix(x, FLaplacian(FBound(x)), 1, 1))
+    '''
+    Name: laplacian_blur
+    Category: stencil
+    Inputs: source:f
+    Output: result:f
+    '''
+    return FMix(x, FLaplacian(FBound(x)), 1, 1)
 
 
+@A.register
 def FLaplacianStep(pos, vel, kappa):
-    return FLike(pos, FMix(vel, FLaplacian(FBound(pos)), 1, kappa))
+    '''
+    Name: laplacian_step
+    Category: physics
+    Inputs: pos:f vel:f kappa:c
+    Output: vel:f
+    '''
+    return FMix(vel, FLaplacian(FBound(pos)), 1, kappa)
 
 
+@A.register
 def FPosAdvect(pos, vel, dt):
-    return FLike(pos, FMix(pos, vel, 1, dt))
+    '''
+    Name: advect_position
+    Category: physics
+    Inputs: pos:f vel:f dt:c
+    Output: pos:f
+    '''
+    return FMix(pos, vel, 1, dt)
 
 
 if __name__ == '__main__':
@@ -1082,3 +1154,6 @@ if __name__ == '__main__':
     init.run()
     gui = RCanvas(vis, step)
     gui.run()
+
+
+__all__ = ['A', 'C', 'IRun', 'IField', 'Meta']

@@ -5,16 +5,10 @@ from . import utils
 
 
 def register(node_system):
-    '''
-    from ..utils import get_modules_list
-    nodes_dir = os.path.dirname(__file__)
-    modules = get_modules_list(nodes_dir, __name__)
-    for module_name, module in modules:
-        if hasattr(module, 'Def'):
-            utils.register_node(module_name, module.Def, node_system)
-    '''
     import tina
-    for name, cls in tina.ns_nodes.items():
+    from . import extra  # register some extra nodes to tina.A
+
+    for name, cls in tina.A.nodes.items():
         utils.register_node(name, cls, node_system)
 
 
