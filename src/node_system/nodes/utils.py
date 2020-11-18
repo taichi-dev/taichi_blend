@@ -29,11 +29,13 @@ def register_node(node_system_name, node_def, node_system):
     node_name = ' '.join(node_name_words)
     node_id = 'TaichiBlend{}Node'.format(''.join(node_name_words))
     attributes = {}
+    attributes['ns_wrapped'] = getattr(node_def, 'wrapped', None)
     attributes['bl_idname'] = 'taichi_blend_{}_node'.format(node_system_name)
     attributes['bl_label'] = node_name
     inputs = []
     outputs = []
     options = []
+    option_items = {}
 
     for attribute_name in dir(node_def):
         if attribute_name.startswith('_'):
@@ -48,6 +50,8 @@ def register_node(node_system_name, node_def, node_system):
             option_def = getattr(node_def, attribute_name)
             option_id = attribute_name[len('option_') : ]
             options.append((option_def, option_id))
+
+    attributes['ns_options'] = options
 
     def create_sockets(sockets_def, sockets):
         for system_name, socket_type in sockets_def:
@@ -73,11 +77,12 @@ def register_node(node_system_name, node_def, node_system):
         prop_class = option_types[option_type]
         if option_type in ['int', 'float', 'bool', 'str']:
             prop = prop_class(name=option_name)
-        elif option_type.startswith('vec'):
+        elif option_type.startswith('vec_'):
             size = int(option_type[-1])
             prop = prop_class(name=option_name, size=size)
         elif option_type == 'enum':
             items_def = getattr(node_def, 'items_' + option_id)
+            option_items[option_id] = items_def
             items = []
             for item in items_def:
                 item_id = item.upper()
@@ -92,6 +97,8 @@ def register_node(node_system_name, node_def, node_system):
         props[option_system_name] = prop
         props_types[option_system_name] = option_type
         props_names[option_system_name] = option_name
+
+    attributes['ns_option_items'] = option_items
 
     def draw_buttons(self, context, layout):
         for attribute, prop in props.items():
@@ -111,3 +118,58 @@ def register_node(node_system_name, node_def, node_system):
     if not node_system.categories_def.get(node_def.category, None):
         node_system.categories_def[node_def.category] = []
     node_system.categories_def[node_def.category].append(attributes['bl_idname'])
+
+
+def get_node_table(node_group):
+    def get_table(node_group):
+        nodes = []
+        for key, node in node_group.nodes.items():
+            inputs = []
+            options = []
+            for (opt_name, opt_type), opt_id in node.ns_options:
+                item = node[opt_name]
+                if opt_type == 'enum':
+                    item = node.ns_option_items[opt_id][item]
+                elif opt_type.startswith('vec_'):
+                    item = tuple(item[i] for i in range(len(item)))
+                options.append(item)
+            for name, socket in node.inputs.items():
+                link_node = None
+                if len(socket.links):
+                    link_node = socket.links[0].from_node
+                    link_node = node_group.nodes.keys().index(link_node.name)
+                inputs.append(link_node)
+            ninfo = node.ns_wrapped, node.name, tuple(inputs), tuple(options)
+            nodes.append(ninfo)
+        return nodes
+
+
+    def construct_table(nodes):
+        visited = [None for i in nodes]
+        entered = [False for i in nodes]
+
+        def dfs(i):
+            if visited[i] is not None:
+                return visited[i]
+
+            entered[i] = True
+            cons, name, inputs, options = nodes[i]
+            args = []
+            for j in inputs:
+                assert not entered[j], j
+                args.append(dfs(j))
+
+            ret = cons(tuple(args), options)
+            visited[i] = ret
+            entered[i] = False
+            return ret
+
+        for i in range(len(nodes)):
+            dfs(i)
+
+        table = {}
+        for i, ninfo in enumerate(nodes):
+            table[ninfo[1]] = visited[i]
+        return table
+
+    return construct_table(get_table(node_group))

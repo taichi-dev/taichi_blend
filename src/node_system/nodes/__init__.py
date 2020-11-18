@@ -14,7 +14,6 @@ def register(node_system):
             utils.register_node(module_name, module.Def, node_system)
     '''
     import tina
-
     for name, cls in tina.ns_nodes.items():
         utils.register_node(name, cls, node_system)
 

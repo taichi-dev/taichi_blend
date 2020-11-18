@@ -20,6 +20,7 @@ sockets = {
     'meta_field': (0.39, 0.78, 0.39),
     'task': (0.78, 0.39, 0.39),
     'meta': (0.78, 0.78, 0.16),
+    'any': (0.39, 0.39, 0.39),
 }
 sockets = [make_socket(name, color) for name, color in sockets.items()]
 

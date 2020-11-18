@@ -98,6 +98,7 @@ def ns_register(cls):
             'mf': 'meta_field',
             'vf': 'vector_field',
             't': 'task',
+            'a': 'any',
     }
     type2option = {
             'dt': 'enum',
@@ -118,27 +119,46 @@ def ns_register(cls):
     class Def:
         pass
 
-    iopt, isoc = 1, 1
+    if len(inputs):
+        name, type = inputs[-1].split(':', 1)
+        if name.startswith('*') and name.endswith('s'):
+            name = name[1:-1]
+            inputs.pop(0)
+            for i in range(2):
+                inputs.append(f'{name}{i}:{type}')
+
+    lut = []
+    iopt, isoc = 0, 0
     for i, arg in enumerate(inputs):
         name, type = arg.split(':', 1)
         if type in type2option:
             option = type2option[type]
+            lut.append((True, iopt))
+            iopt += 1
             setattr(Def, f'option_{iopt}', (name, option))
             if option == 'enum':
                 items = tuple(type2items[type])
                 setattr(Def, f'items_{iopt}', items)
-            iopt += 1
         else:
             socket = type2socket[type]
-            setattr(Def, f'input_{isoc}', (name, socket))
+            lut.append((False, isoc))
             isoc += 1
+            setattr(Def, f'input_{isoc}', (name, socket))
 
     for i, arg in enumerate(outputs):
         name, type = arg.split(':', 1)
         socket = type2socket[type]
         setattr(Def, f'output_{i + 1}', (name, socket))
 
-    def wrapped(*args):
+    def wrapped(self, inputs, options):
+        # print('+++', inputs, options)
+        args = []
+        for isopt, index in lut:
+            if isopt:
+                args.append(options[index])
+            else:
+                args.append(inputs[index])
+        # print('===', cls, args)
         args = converter(*args)
         return cls(*args)
 
@@ -160,10 +180,6 @@ class IField:
     def subscript(self, *indices):
         I = tovector(indices)
         return self._subscript(I)
-
-    @ti.func
-    def __iter__(self):
-        raise NotImplementedError
 
 
 @ns_register
@@ -196,10 +212,6 @@ class Meta:
         self.dtype = dtype
         self.shape = totuple(shape)
         self.vdims = totuple(vdims)
-
-    @classmethod
-    def copy(cls, other):
-        return cls(other.shape, other.dtype, other.vdims)
 
     def __repr__(self):
         dtype = self.dtype
@@ -288,7 +300,7 @@ class IRun:
 
 
 @ns_register
-class FShape(IShapeField):
+class FSpec(IShapeField):
     '''
     Name: specify_meta
     Category: meta
@@ -309,21 +321,36 @@ class FShape(IShapeField):
 
 
 @ns_register
+class FMeta(Meta):
+    '''
+    Name: get_meta
+    Category: meta
+    Inputs: field:mf
+    Output: meta:m
+    '''
+
+    def __init__(self, field):
+        assert isinstance(field, IShapeField)
+
+        super().__init__(field.meta.shape, field.meta.dtype, field.meta.vdims)
+
+
+@ns_register
 class FLike(IShapeField):
     '''
     Name: imitate_meta
     Category: meta
-    Inputs: source:mf field:f
+    Inputs: like:mf field:f
     Output: field:mf
     '''
 
-    def __init__(self, src, field):
-        assert isinstance(src, IShapeField)
+    def __init__(self, like, field):
+        assert isinstance(like, IShapeField)
         assert isinstance(field, IField)
 
         self.field = field
-        self.src = src
-        self.meta = self.src.meta
+        self.like = like
+        self.meta = self.like.meta
 
     @ti.func
     def _subscript(self, I):
@@ -361,22 +388,23 @@ class FDouble(IShapeField, IRun):
     '''
     Name: double_buffer
     Category: storage
-    Inputs: source:mf
-    Output: current:mf
+    Inputs: meta:m
+    Output: current:mf update:t
     '''
 
-    def __init__(self, src):
-        assert isinstance(src, IShapeField)
+    def __init__(self, meta):
+        assert isinstance(meta, Meta)
 
-        self.src = src
-        self.meta = self.src.meta
+        self.meta = meta
         self.cur = Field(self.meta)
         self.nxt = Field(self.meta)
+        self.src = None
 
     def swap(self):
         self.cur, self.nxt = self.nxt, self.cur
 
     def run(self):
+        assert self.src is not None
         self._run(self.nxt, self.src)
         self.swap()
 
@@ -560,8 +588,8 @@ class FLerp(IField):
 @ns_register
 class FClamp(IField):
     '''
-    Name: value_clamp
-    Category: sampler
+    Name: clamp_value
+    Category: converter
     Inputs: source:f min:c max:c
     Output: clamped:f
     '''
@@ -608,7 +636,7 @@ class FRange(IField):
 @ns_register
 class FMultiply(IField):
     '''
-    Name: multiply_value
+    Name: fieldwise_multiply
     Category: converter
     Inputs: lhs:f rhs:f
     Output: result:f
@@ -691,7 +719,7 @@ class FIndex(IField):
     '''
     Name: get_field_index
     Category: sampler
-    Inputs: 
+    Inputs:
     Output: index:vf
     '''
 
@@ -859,7 +887,7 @@ class FGradient(IShapeField):
 class RFCopy(IRun):
     '''
     Name: copy_field
-    Category: storage
+    Category: task
     Inputs: dest:mf source:f
     Output: task:t
     '''
@@ -881,7 +909,7 @@ class RFCopy(IRun):
 class RFAccumate(IRun):
     '''
     Name: accumate_field
-    Category: storage
+    Category: task
     Inputs: dest:mf source:f
     Output: task:t
     '''
@@ -903,7 +931,7 @@ class RFAccumate(IRun):
 class RMerge(IRun):
     '''
     Name: merge_tasks
-    Category: scheduler
+    Category: task
     Inputs: *tasks:t
     Output: merged:t
     '''
@@ -922,7 +950,7 @@ class RMerge(IRun):
 class RTimes(IRun):
     '''
     Name: repeat_task
-    Category: scheduler
+    Category: task
     Inputs: task:t times:i
     Output: repeated:t
     '''
@@ -939,19 +967,36 @@ class RTimes(IRun):
 
 
 @ns_register
-@ti.data_oriented
-class Canvas:
+class RNull(IRun):
+    '''
+    Name: null_task
+    Category: task
+    Inputs:
+    Output: task:t
+    '''
+
+    def __init__(self):
+        pass
+
+    def run(self):
+        pass
+
+
+@ns_register
+class RCanvas(IRun):
     '''
     Name: canvas_visualize
     Category: output
-    Inputs: image:vf res:i2
-    Output:
-        '''
+    Inputs: image:vf update:t res:i2
+    Output: task:t
+    '''
 
-    def __init__(self, img, res=None):
+    def __init__(self, img, update, res=None):
         assert isinstance(img, IShapeField)
+        assert isinstance(update, IRun)
 
         self.img = img
+        self.update = update
         self.res = res or (512, 512)
 
     def _cook(self, color):
@@ -989,14 +1034,30 @@ class Canvas:
                 alpha = -16777216
                 out[i] = (b << 16) + (g << 8) + r + alpha
 
-    def __iter__(self):
+    def run(self):
         gui = ti.GUI(res=self.res, fast_gui=True)
         while gui.running:
             gui.get_event(None)
             gui.running = not gui.is_pressed(gui.ESCAPE)
-            yield gui
+            self.update.run()
             self.render(gui.img, gui.res)
             gui.show()
+
+
+@ns_register
+class ROutput(IRun):
+    '''
+    Name: output_task
+    Category: output
+    Inputs: task:t
+    Output:
+    '''
+    def __init__(self, task):
+        assert isinstance(task, IRun)
+        self.task = task
+
+    def run(self):
+        self.task.run()
 
 
 def FLaplacianBlur(x):
@@ -1012,20 +1073,14 @@ def FPosAdvect(pos, vel, dt):
 
 
 if __name__ == '__main__':
-    ini = FShape(C.float[512, 512], FGaussDist([256, 256], 6, 8))
-    pos = FDouble(ini)
-    vel = FDouble(ini)
+    ini = FSpec(C.float[512, 512], FGaussDist([256, 256], 6, 8))
+    pos = FDouble(FMeta(ini))
+    vel = FDouble(FMeta(ini))
     pos.src = FPosAdvect(pos, vel, 0.1)
     vel.src = FLaplacianStep(pos, vel, 1)
     init = RMerge(RFCopy(pos, ini), RFCopy(vel, FConst(0)))
     step = RTimes(RMerge(pos, vel), 8)
-    vis = FShape(C.float(3)[512, 512], FMix(FVPack(pos, FGradient(pos)), FConst(1), 0.5, 0.5))
-#frm = Field(C.int[None])
-#off = FCache(FShape(C.float[None], FFunc(lambda x: 10 * ti.sin(0.1 * x), frm)))
-#vis = FCache(FLike(vis, FBilerp(FRepeat(vis), FMix(FIndex(), FUniform(off), 1, 1))))
-#step = RMerge(off, vis, step)
-
+    vis = FSpec(C.float(3)[512, 512], FMix(FVPack(pos, FGradient(pos)), FConst(1), 0.5, 0.5))
     init.run()
-    for gui in Canvas(vis):
-        #frm.core[None] = gui.frame
-        step.run()
+    gui = RCanvas(vis, step)
+    gui.run()

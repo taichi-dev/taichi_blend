@@ -1,6 +1,6 @@
 import bpy
 
-from . import tree, sockets, nodes, categories
+from . import tree, sockets, nodes, categories, ui
 
 
 class TaichiBlendNodeSystem:
@@ -17,7 +17,8 @@ modules = [
     tree,
     sockets,
     nodes,
-    categories
+    categories,
+    ui,
 ]
 
 
