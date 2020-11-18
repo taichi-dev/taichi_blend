@@ -1,8 +1,43 @@
 import bpy
+import queue
+import threading
+import traceback
 
 from .nodes import utils
 
 
+class TaichiWorker:
+    def __init__(self):
+        self.q = queue.Queue(maxsize=4)
+        self.running = True
+
+        self.t = threading.Thread(target=self.main)
+        self.t.start()
+
+    def main(self):
+        print('Worker started')
+        while self.running:
+            try:
+                func = self.q.get(block=True, timeout=1)
+            except queue.Empty:
+                continue
+
+            try:
+                func(self)
+            except Exception:
+                print('Exception while running task:')
+                print(traceback.format_exc())
+
+            self.q.task_done()
+
+    def launch(self, func):
+        self.q.put(func, block=True, timeout=None)
+
+    def wait_done(self):
+        self.q.join()
+
+
+worker = TaichiWorker()
 
 
 class TaichiApplyOperator(bpy.types.Operator):
@@ -16,15 +51,17 @@ class TaichiApplyOperator(bpy.types.Operator):
         return bpy.context.scene.taichi_node_group in bpy.data.node_groups
 
     def execute(self, context):
-        import taichi as ti
-        backend = bpy.context.scene.taichi_use_backend.lower()
-        ti.init(arch=getattr(ti, backend))
+        @worker.launch
+        def _(self):
+            import taichi as ti
+            backend = bpy.context.scene.taichi_use_backend.lower()
+            ti.init(arch=getattr(ti, backend))
 
-        name = bpy.context.scene.taichi_node_group
-        table = utils.get_node_table(bpy.data.node_groups[name])
-
-        output = table['Output Task']
-        output.run()
+            name = bpy.context.scene.taichi_node_group
+            table = utils.get_node_table(bpy.data.node_groups[name])
+            output = table['Output Task']
+            output.run()
+            print('Task finished')
 
         return {'FINISHED'}
 

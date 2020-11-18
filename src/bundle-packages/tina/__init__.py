@@ -421,18 +421,32 @@ class FDouble(IField, IRun):
         self.cur, self.nxt = self.nxt, self.cur
 
     def run(self):
-        assert self.src is not None
+        assert self.src is not None, 'FDouble must come with FDBind'
         self._run(self.nxt, self.src)
         self.swap()
 
     @ti.kernel
     def _run(self, nxt: ti.template(), src: ti.template()):
-        for I in ti.static(src):
+        for I in ti.static(nxt):
             nxt[I] = src[I]
 
     @ti.func
     def _subscript(self, I):
         return self.cur[I]
+
+
+@A.register
+def FDBind(buf, src):
+    '''
+    Name: bind_source
+    Category: storage
+    Inputs: double:f source:f
+    Output:
+    '''
+    assert isinstance(buf, FDouble)
+    assert isinstance(src, IField)
+
+    buf.src = src
 
 
 @A.register
@@ -681,9 +695,13 @@ class FFunc(IField):
     '''
     Name: fieldwise_function
     Category: converter
-    Inputs: *args:f
+    Inputs: func:s *args:f
     Output: result:f
     '''
+
+    def ns_convert(func, *args):
+        func = eval(func)
+        return func, *args
 
     def __init__(self, func, *args):
         assert all(isinstance(a, IField) for a in args)
@@ -1146,11 +1164,11 @@ if __name__ == '__main__':
     ini = FSpec(C.float[512, 512], FGaussDist([256, 256], 6, 8))
     pos = FDouble(FMeta(ini))
     vel = FDouble(FMeta(ini))
-    pos.src = FPosAdvect(pos, vel, 0.1)
-    vel.src = FLaplacianStep(pos, vel, 1)
+    FDBind(pos, FPosAdvect(pos, vel, 0.1))
+    FDBind(vel, FLaplacianStep(pos, vel, 1))
     init = RMerge(RFCopy(pos, ini), RFCopy(vel, FConst(0)))
     step = RTimes(RMerge(pos, vel), 8)
-    vis = FSpec(C.float(3)[512, 512], FMix(FVPack(pos, FGradient(pos)), FConst(1), 0.5, 0.5))
+    vis = FMix(FVPack(pos, FGradient(pos)), FConst(1), 0.5, 0.5)
     init.run()
     gui = RCanvas(vis, step)
     gui.run()
