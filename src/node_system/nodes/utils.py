@@ -133,7 +133,7 @@ def get_node_table(node_group):
                     if opt_type == 'str' or opt_type.startswith('search_'):
                         item = ''
                     elif opt_type.startswith('vec_'):
-                        item = [0] * int(opt_type.split('_')[-1])
+                        item = (0,) * int(opt_type.split('_')[-1])
                     else:
                         item = 0
                 if opt_type == 'enum':

@@ -12,7 +12,14 @@ class TaichiWorker:
         self.running = True
 
         self.t = threading.Thread(target=self.main)
+        self.t.daemon = True
         self.t.start()
+
+    def stop(self):
+        print('Stopping worker')
+        if self.running:
+            self.running = False
+            self.q.put(lambda self: None, block=False)
 
     def main(self):
         print('Worker started')
@@ -35,9 +42,6 @@ class TaichiWorker:
 
     def wait_done(self):
         self.q.join()
-
-
-worker = TaichiWorker()
 
 
 class TaichiApplyOperator(bpy.types.Operator):
@@ -83,10 +87,15 @@ class TaichiPanel(bpy.types.Panel):
                 bpy.data, 'node_groups', text='Tree')
         layout.prop(scene, 'taichi_use_backend')
         layout.operator('scene.taichi_apply')
-        layout.operator('render.render')
+
+
+worker = None
 
 
 def register(node_system):
+    global worker
+    worker = TaichiWorker()
+
     bpy.types.Scene.taichi_node_group = bpy.props.StringProperty()
     bpy.types.Scene.taichi_use_backend = bpy.props.EnumProperty(name='Backend',
         items=[(item.upper(), item, '') for item in [
@@ -103,3 +112,5 @@ def unregister(node_system):
 
     del bpy.types.Scene.taichi_node_group
     del bpy.types.Scene.taichi_use_backend
+
+    worker.stop()
