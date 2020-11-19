@@ -2,7 +2,7 @@ bl_info = {
         'name': 'Taichi Blend',
         'description': 'Taichi Blender intergration',
         'author': 'Taichi Developers',
-        'version': (0, 0, 3),
+        'version': (0, 0, 4),
         'blender': (2, 81, 0),
         'location': 'Scripting module',
         'support': 'COMMUNITY',
@@ -11,12 +11,12 @@ bl_info = {
         'category': 'Physics',
 }
 
-from . import package_bundle, node_system, render_engine
+from . import package_bundle, render_engine, node_system
 
 modules = [
     package_bundle,
-    node_system,
     render_engine,
+    node_system,
 ]
 
 def register():

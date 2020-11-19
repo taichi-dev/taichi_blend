@@ -1174,4 +1174,5 @@ if __name__ == '__main__':
     gui.run()
 
 
-__all__ = ['A', 'C', 'IRun', 'IField', 'Meta']
+__all__ = ['ti', 'A', 'C', 'IRun', 'IField', 'Meta',
+           'clamp', 'bilerp', 'totuple', 'tovector', 'V']

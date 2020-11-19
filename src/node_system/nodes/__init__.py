@@ -6,7 +6,7 @@ from . import utils
 
 def register(node_system):
     import tina
-    from . import extra  # register some extra nodes to tina.A
+    from . import blendina  # register some extra nodes to tina.A
 
     for name, cls in tina.A.nodes.items():
         utils.register_node(name, cls, node_system)

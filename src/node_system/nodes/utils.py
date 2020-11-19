@@ -127,7 +127,15 @@ def get_node_table(node_group):
             inputs = []
             options = []
             for (opt_name, opt_type), opt_id in node.ns_options:
-                item = node[opt_name]
+                if opt_name in node:
+                    item = node[opt_name]
+                else:
+                    if opt_type == 'str' or opt_type.startswith('search_'):
+                        item = ''
+                    elif opt_type.startswith('vec_'):
+                        item = [0] * int(opt_type.split('_')[-1])
+                    else:
+                        item = 0
                 if opt_type == 'enum':
                     item = node.ns_option_items[opt_id][item]
                 elif opt_type.startswith('vec_'):
