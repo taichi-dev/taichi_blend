@@ -17,17 +17,13 @@ class TaichiRenderEngine(bpy.types.RenderEngine):
         self.draw_data = None
         self.updated = False
 
-        from .worker import TaichiWorker
-        self.engine = TaichiWorker()
-        self.worker = self.engine.worker
+        self.engine = TaichiEngine()
 
     # When the render engine instance is destroy, this is called. Clean up any
     # render engine data here, for example stopping running render threads.
     def __del__(self):
         if hasattr(self, 'engine'):
             self.engine.stop()
-            from .worker import TaichiWorker
-            TaichiWorker._delete_instance()
 
     # This is the method called by Blender for both final renders (F12) and
     # small preview for materials, world and lights.
@@ -99,9 +95,9 @@ class TaichiRenderEngine(bpy.types.RenderEngine):
     def view_draw(self, context, depsgraph):
         region = context.region
         scene = depsgraph.scene
-        view_matrix = context.region_data.view_matrix.to_4x4()
-        window_matrix = context.region_data.window_matrix.to_4x4()
-        perspective_matrix = context.region_data.perspective_matrix.to_4x4()
+        #view_matrix = context.region_data.view_matrix.to_4x4()
+        #window_matrix = context.region_data.window_matrix.to_4x4()
+        #perspective_matrix = context.region_data.perspective_matrix.to_4x4()
 
         # Get viewport dimensions
         dimensions = region.width, region.height
@@ -112,12 +108,8 @@ class TaichiRenderEngine(bpy.types.RenderEngine):
         self.bind_display_space_shader(scene)
 
         if not self.draw_data or self.updated \
-            or self.draw_data.dimensions != dimensions \
-            or self.draw_data.window_matrix != window_matrix \
-            or self.draw_data.perspective_matrix != perspective_matrix \
-            or self.draw_data.view_matrix != view_matrix:
-            self.draw_data = CustomDrawData(self.engine, dimensions,
-                    view_matrix, window_matrix, perspective_matrix)
+            or self.draw_data.dimensions != dimensions:
+            self.draw_data = CustomDrawData(self.engine, dimensions)
             self.updated = False
 
         self.draw_data.draw()
@@ -230,9 +222,6 @@ def register():
     for panel in get_panels():
         panel.COMPAT_ENGINES.add('TAICHI')
 
-    from . import ui
-    ui.register()
-
 
 def unregister():
     bpy.utils.unregister_class(TaichiRenderEngine)
@@ -240,6 +229,3 @@ def unregister():
     for panel in get_panels():
         if 'TAICHI' in panel.COMPAT_ENGINES:
             panel.COMPAT_ENGINES.remove('TAICHI')
-
-    from . import ui
-    ui.unregister()

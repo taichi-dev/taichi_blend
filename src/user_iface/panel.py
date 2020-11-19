@@ -3,7 +3,7 @@ import queue
 import threading
 import traceback
 
-from .nodes import utils
+from ..node_system.nodes import utils
 
 
 class TaichiWorker:
@@ -92,7 +92,7 @@ class TaichiPanel(bpy.types.Panel):
 worker = None
 
 
-def register(node_system):
+def register():
     global worker
     worker = TaichiWorker()
 
@@ -106,7 +106,7 @@ def register(node_system):
     bpy.utils.register_class(TaichiPanel)
 
 
-def unregister(node_system):
+def unregister():
     bpy.utils.unregister_class(TaichiPanel)
     bpy.utils.unregister_class(TaichiApplyOperator)
 

@@ -1,9 +1,7 @@
 import os, importlib
-
 import nodeitems_utils
 
 from . import base
-from .. import utils
 
 
 def register(node_system):

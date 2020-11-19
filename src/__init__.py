@@ -11,12 +11,12 @@ bl_info = {
         'category': 'Physics',
 }
 
-from . import package_bundle, render_engine, node_system
+from . import package_bundle, node_system, user_iface
 
 modules = [
     package_bundle,
-    render_engine,
     node_system,
+    user_iface,
 ]
 
 def register():
