@@ -4,7 +4,7 @@ bl_info = {
         'author': 'Taichi Developers',
         'version': (0, 0, 4),
         'blender': (2, 81, 0),
-        'location': 'Scripting module',
+        'location': 'Taichi Blend Window',
         'support': 'COMMUNITY',
         'wiki_url': 'https://github.com/taichi-dev/taichi_blend/wiki',
         'tracker_url': 'https://github.com/taichi-dev/taichi_blend/issues',

@@ -1,6 +1,7 @@
-from . import render, panel
+from . import engine, render, panel
 
 modules = [
+    engine,
     render,
     panel,
 ]

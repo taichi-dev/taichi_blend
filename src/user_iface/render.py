@@ -1,6 +1,8 @@
 import bpy
 import bgl
 
+from . import engine
+
 
 class TaichiRenderEngine(bpy.types.RenderEngine):
     # These Taichi members are used by blender to set up the
@@ -17,13 +19,10 @@ class TaichiRenderEngine(bpy.types.RenderEngine):
         self.draw_data = None
         self.updated = False
 
-        self.engine = TaichiEngine()
-
     # When the render engine instance is destroy, this is called. Clean up any
     # render engine data here, for example stopping running render threads.
     def __del__(self):
-        if hasattr(self, 'engine'):
-            self.engine.stop()
+        pass
 
     # This is the method called by Blender for both final renders (F12) and
     # small preview for materials, world and lights.
@@ -37,11 +36,7 @@ class TaichiRenderEngine(bpy.types.RenderEngine):
         # defined as a list of pixels, each pixel itself being a list of
         # R,G,B,A values.
 
-        view_matrix = [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]
-        window_matrix = [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]
-        perspective_matrix = [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]
-        pixels = self.engine.render(self.size_x, self.size_y, view_matrix,
-                window_matrix, perspective_matrix)
+        pixels = engine.render_main(self.size_x, self.size_y)
         pixels = pixels.reshape(self.size_x * self.size_y, 4).tolist()
 
         # Here we write the pixel values to the RenderResult
@@ -109,7 +104,7 @@ class TaichiRenderEngine(bpy.types.RenderEngine):
 
         if not self.draw_data or self.updated \
             or self.draw_data.dimensions != dimensions:
-            self.draw_data = CustomDrawData(self.engine, dimensions)
+            self.draw_data = CustomDrawData(dimensions)
             self.updated = False
 
         self.draw_data.draw()
@@ -119,20 +114,12 @@ class TaichiRenderEngine(bpy.types.RenderEngine):
 
 
 class CustomDrawData:
-    def __init__(self, engine, dimensions,
-            view_matrix, window_matrix, perspective_matrix):
-        # Generate dummy float image buffer
+    def __init__(self, dimensions):
         self.dimensions = dimensions
-        self.view_matrix = view_matrix
-        self.window_matrix = window_matrix
-        self.perspective_matrix = perspective_matrix
-
         width, height = dimensions
-        view = [[view_matrix[i][j] for j in range(4)] for i in range(4)]
-        window = [[window_matrix[i][j] for j in range(4)] for i in range(4)]
-        perspective = [[perspective_matrix[i][j] for j in range(4)] for i in range(4)]
+        pixels = engine.render_main(width, height)
 
-        pixels = engine.render(width, height, view, window, perspective)
+        # Generate dummy float image buffer
         pixels = bgl.Buffer(bgl.GL_FLOAT, width * height * 4, pixels)
 
         # Generate texture

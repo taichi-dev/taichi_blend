@@ -3,9 +3,9 @@ import bpy
 
 
 @A.register
-class OutputTask(IRun):
+class TestOutput(IRun):
     '''
-    Name: output_task
+    Name: test_output
     Category: output
     Inputs: task:t
     Output:
@@ -19,19 +19,18 @@ class OutputTask(IRun):
 
 
 @A.register
-class ViewportVisualize(IRun):
+@ti.data_oriented
+class RenderOutput:
     '''
-    Name: viewport_visualize
+    Name: render_output
     Category: output
-    Inputs: image:vf update:t
-    Output: task:t
+    Inputs: image:vf
+    Output:
     '''
-    def __init__(self, img, update):
+    def __init__(self, img):
         assert isinstance(img, IField)
-        assert isinstance(update, IRun)
 
         self.img = img
-        self.update = update
 
     def _cook(self, color):
         if isinstance(color, ti.Expr):
@@ -49,9 +48,9 @@ class ViewportVisualize(IRun):
         return color
 
     @ti.func
-    def image_at(self, i, j):
+    def image_at(self, i, j, width, height):
         ti.static_assert(len(self.img.meta.shape) == 2)
-        scale = ti.Vector(self.img.meta.shape) / ti.Vector(self.res)
+        scale = ti.Vector(self.img.meta.shape) / ti.Vector([width, height])
         pos = ti.Vector([i, j]) * scale
         color = bilerp(self.img, pos)
         return self._cook(color)
@@ -59,7 +58,9 @@ class ViewportVisualize(IRun):
     @ti.kernel
     def render(self, out: ti.ext_arr(), width: int, height: int):
         for i, j in ti.ndrange(width, height):
-            image_at()
-
-    def run(self):
-        raise NotImplementedError
+            r, g, b = self.image_at(i, j, width, height)
+            base = (j * width + i) * 4
+            out[base + 0] = r
+            out[base + 1] = g
+            out[base + 2] = b
+            out[base + 3] = 1
