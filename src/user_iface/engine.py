@@ -58,12 +58,6 @@ def taichi_init():
     return table
 
 
-def apply_main():
-    @worker.launch
-    def _(self):
-        self.table = taichi_init()
-
-
 def render_main(width, height):
     pixels = np.empty(width * height * 4, dtype=np.float32)
 
@@ -77,13 +71,39 @@ def render_main(width, height):
     return pixels
 
 
+def apply_main():
+    @worker.launch
+    def _(self):
+        self.table = taichi_init()
+        output = self.table['On Start']
+        output.run()
+
+    worker.wait_done()
+    bpy.context.scene.frame_current = 0
+
+
+@bpy.app.handlers.persistent
+def frame_update_callback(*make_the_stupid, **blender_happy):
+    if worker is None or worker.table is None:
+        return
+
+    @worker.launch
+    def _(self):
+        output = self.table['On Update']
+        output.run()
+
+    worker.wait_done()
+
+
 worker = None
 
 
 def register():
     global worker
     worker = TaichiWorker()
+    bpy.app.handlers.frame_change_pre.append(frame_update_callback)
 
 
 def unregister():
+    bpy.app.handlers.frame_change_pre.remove(frame_update_callback)
     worker.stop()

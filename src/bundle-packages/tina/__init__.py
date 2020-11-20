@@ -78,7 +78,7 @@ class A:
     def __getattr__(self, name):
         if name not in self.nodes:
             raise AttributeError(f'Cannot find any node matches name `{name}`')
-        return self.nodes[name]
+        return self.nodes[name].original
 
     def register(self, cls):
         docs = cls.__doc__.strip().splitlines()
@@ -134,7 +134,7 @@ class A:
             name, type = inputs[-1].split(':', 1)
             if name.startswith('*') and name.endswith('s'):
                 name = name[1:-1]
-                inputs.pop(0)
+                inputs.pop()
                 for i in range(2):
                     inputs.append(f'{name}{i}:{type}')
 
@@ -175,29 +175,10 @@ class A:
 
         setattr(Def, 'category', category)
         setattr(Def, 'wrapped', wrapped)
+        setattr(Def, 'original', cls)
         self.nodes[node_name] = Def
 
         return cls
-
-
-@ti.data_oriented
-class IField:
-    is_taichi_class = True
-
-    meta = NotImplemented
-
-    @ti.func
-    def _subscript(self, I):
-        raise NotImplementedError
-
-    def subscript(self, *indices):
-        I = tovector(indices)
-        return self._subscript(I)
-
-    @ti.func
-    def __iter__(self):
-        for I in ti.grouped(ti.ndrange(*self.meta.shape)):
-            yield I
 
 
 @A.register
@@ -228,8 +209,8 @@ class Meta:
 
     def __init__(self, shape=None, dtype=None, vdims=None):
         self.dtype = dtype
-        self.shape = totuple(shape)
-        self.vdims = totuple(vdims)
+        self.shape = totuple(shape) if shape is not None else shape
+        self.vdims = totuple(vdims) if vdims is not None else vdims
 
     def copy(self, other):
         Meta.__init__(self, other.shape, other.dtype, other.vdims)
@@ -240,7 +221,7 @@ class Meta:
             dtype = 'ti.' + dtype.to_string()
         elif hasattr(dtype, '__name__'):
             dtype = dtype.__name__
-        return f'Meta({dtype}, {list(self.vdims)}, {list(self.shape)})'
+        return f'Meta({list(self.shape)}, {dtype}, {list(self.vdims)})'
 
 
 @A.register
@@ -251,6 +232,20 @@ class MEdit(Meta):
     Inputs: meta:m shape:i3 dtype:dt vdims:i2 eshape:b edtype:b evdims:b
     Output: meta:m
     '''
+
+    def ns_convert(meta, shape, dtype, vdims, eshape, edtype, evdims):
+        dtype = dtype_from_name(dtype)
+        if shape[2] == 0:
+            shape = shape[0], shape[1]
+        if shape[1] == 0:
+            shape = shape[0],
+        if shape[0] == 0:
+            shape = ()
+        if vdims[1] == 0:
+            vdims = vdims[0],
+        if vdims[0] == 0:
+            vdims = ()
+        return meta, shape, dtype, vdims, eshape, edtype, evdims
 
     def __init__(self, meta, shape=None, dtype=None, vdims=None,
             eshape=None, edtype=None, evdims=None):
@@ -338,6 +333,26 @@ class IRun:
         raise NotImplementedError
 
 
+@ti.data_oriented
+class IField:
+    is_taichi_class = True
+
+    meta = Meta()
+
+    @ti.func
+    def _subscript(self, I):
+        raise NotImplementedError
+
+    def subscript(self, *indices):
+        I = tovector(indices)
+        return self._subscript(I)
+
+    @ti.func
+    def __iter__(self):
+        for I in ti.grouped(ti.ndrange(*self.meta.shape)):
+            yield I
+
+
 @A.register
 class FSpec(IField):
     '''
@@ -360,18 +375,16 @@ class FSpec(IField):
 
 
 @A.register
-class FMeta(Meta):
+def FMeta(field):
     '''
     Name: get_meta
     Category: meta
     Inputs: field:f
     Output: meta:m
     '''
+    assert isinstance(field, IField)
 
-    def __init__(self, field):
-        assert isinstance(field, IField)
-
-        super().copy(field.meta)
+    return field.meta
 
 
 @A.register
@@ -406,7 +419,7 @@ class FDouble(IField, IRun):
     Name: double_buffer
     Category: storage
     Inputs: meta:m
-    Output: current:f update:t
+    Output: current:f double:f update:t
     '''
 
     def __init__(self, meta):
@@ -492,12 +505,18 @@ class Field(IField):
     def __getattr__(self, attr):
         return getattr(self.core, attr)
 
+    def __getitem__(self, item):
+        return self.core[item]
+
+    def __setitem__(self, item, value):
+        self.core[item] = value
+
 
 @A.register
 class FConst(IField):
     '''
     Name: constant_field
-    Category: sampler
+    Category: parameter
     Inputs: value:c
     Output: field:f
     '''
@@ -514,7 +533,7 @@ class FConst(IField):
 class FUniform(IField):
     '''
     Name: uniform_field
-    Category: sampler
+    Category: parameter
     Inputs: value:f
     Output: field:f
     '''
@@ -527,6 +546,42 @@ class FUniform(IField):
     @ti.func
     def _subscript(self, I):
         return self.value[None]
+
+
+@A.register
+class FFlatten(IField):
+    '''
+    Name: flatten_field
+    Category: sampler
+    Inputs: source:f
+    Output: result:f
+    '''
+
+    def __init__(self, src):
+        assert isinstance(src, IField)
+
+        self.src = src
+        self.meta = FMeta(src)
+        self.dim = len(self.meta.shape)
+
+        size = 1
+        for i in range(self.dim):
+            size *= self.meta.shape[i]
+
+        self.meta = MEdit(self.meta, shape=size)
+
+    @ti.func
+    def _subscript(self, I):
+        ti.static_assert(I.n == 1)
+        index = I[0]
+
+        J = ti.Vector.zero(int, self.dim)
+        for i in ti.static(range(self.dim)):
+            axis = self.src.meta.shape[i]
+            J[i] = index % axis
+            index //= axis
+
+        return self.src[J]
 
 
 @A.register
@@ -671,7 +726,7 @@ class FRange(IField):
 @A.register
 class FMultiply(IField):
     '''
-    Name: fieldwise_multiply
+    Name: multiply_value
     Category: converter
     Inputs: lhs:f rhs:f
     Output: result:f
@@ -693,14 +748,16 @@ class FMultiply(IField):
 @A.register
 class FFunc(IField):
     '''
-    Name: fieldwise_function
+    Name: apply_function
     Category: converter
     Inputs: func:s *args:f
     Output: result:f
     '''
 
     def ns_convert(func, *args):
-        func = eval(func)
+        for name in 'print min max int float any all'.split():
+            func = func.replace(name, 'ti.ti_' + name)
+        func = eval(f'lambda x, y: ({func})')
         return func, *args
 
     def __init__(self, func, *args):
@@ -738,6 +795,26 @@ class FVChannel(IField):
 
 
 @A.register
+class FVLength(IField):
+    '''
+    Name: vector_length
+    Category: converter
+    Inputs: vector:vf
+    Output: length:f
+    '''
+
+    def __init__(self, field):
+        assert isinstance(field, IField)
+
+        self.field = field
+        self.meta = MEdit(FMeta(self.field), vdims=())
+
+    @ti.func
+    def _subscript(self, I):
+        return self.field[I].norm()
+
+
+@A.register
 class FVPack(IField):
     '''
     Name: pack_vector
@@ -762,8 +839,8 @@ class FVPack(IField):
 @A.register
 class FIndex(IField):
     '''
-    Name: get_field_index
-    Category: sampler
+    Name: field_index
+    Category: parameter
     Inputs:
     Output: index:vf
     '''
@@ -823,7 +900,7 @@ class FBilerp(IField):
 @A.register
 class FVTrans(IField):
     '''
-    Name: affine_transformation
+    Name: affine_transform
     Category: converter
     Inputs: vector:vf matrix:vf offset:vf
     Output: result:vf
@@ -1110,21 +1187,19 @@ class RCanvas(IRun):
 
 
 @A.register
-class RFPrint(IRun):
+class RStaticPrint(IRun):
     '''
-    Name: console_print
+    Name: static_print
     Category: output
-    Inputs: field:f
+    Inputs: value:a
     Output: task:t
     '''
 
-    def __init__(self, img):
-        assert isinstance(img, IField)
-
-        self.img = img
+    def __init__(self, value):
+        self.value = value
 
     def run(self):
-        print(self.img)
+        print(self.value)
 
 
 @A.register
@@ -1174,5 +1249,5 @@ if __name__ == '__main__':
     gui.run()
 
 
-__all__ = ['ti', 'A', 'C', 'IRun', 'IField', 'Meta',
+__all__ = ['ti', 'A', 'C', 'IRun', 'IField', 'Meta', 'Field',
            'clamp', 'bilerp', 'totuple', 'tovector', 'V']

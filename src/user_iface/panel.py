@@ -3,8 +3,8 @@ import bpy
 from . import engine
 
 
-class TaichiApplyOperator(bpy.types.Operator):
-    '''Apply Taichi program'''
+class TaichiBlendApplyOperator(bpy.types.Operator):
+    '''Apply Taichi Blend program'''
 
     bl_idname = "scene.taichi_apply"
     bl_label = "Apply"
@@ -18,11 +18,11 @@ class TaichiApplyOperator(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class TaichiPanel(bpy.types.Panel):
-    '''Taichi program options'''
+class TaichiBlendPanel(bpy.types.Panel):
+    '''Taichi Blend program options'''
 
-    bl_label = 'Taichi'
-    bl_idname = 'SCENE_PT_taichi'
+    bl_label = 'Taichi Blend'
+    bl_idname = 'SCENE_PT_taichi_blend'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = 'scene'
@@ -44,13 +44,13 @@ def register():
             'CPU', 'GPU', 'CUDA', 'OpenCL', 'OpenGL', 'Metal', 'CC',
             ]])
 
-    bpy.utils.register_class(TaichiApplyOperator)
-    bpy.utils.register_class(TaichiPanel)
+    bpy.utils.register_class(TaichiBlendApplyOperator)
+    bpy.utils.register_class(TaichiBlendPanel)
 
 
 def unregister():
-    bpy.utils.unregister_class(TaichiPanel)
-    bpy.utils.unregister_class(TaichiApplyOperator)
+    bpy.utils.unregister_class(TaichiBlendPanel)
+    bpy.utils.unregister_class(TaichiBlendApplyOperator)
 
     del bpy.types.Scene.taichi_node_group
     del bpy.types.Scene.taichi_use_backend
