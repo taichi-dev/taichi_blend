@@ -24,7 +24,7 @@ class TaichiWorker:
         print('Stopping worker')
         if self.running:
             self.running = False
-            self.q.put([None, None], lambda self: None, block=False)
+            self.q.put((lambda self: None, [None, None]), block=False)
 
     def main(self):
         print('Worker started')
@@ -68,6 +68,8 @@ def render_main(width, height):
     @worker.launch
     def result(self):
         assert self.table is not None, 'Please APPLY the program first'
+        if 'Render Output' not in self.table:
+            raise ValueError('No render output node!')
         output = self.table['Render Output']
         output.render(pixels, width, height)
 

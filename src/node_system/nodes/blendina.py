@@ -64,20 +64,12 @@ class NewMeshObject(IRun):
     '''
     def __init__(self, name, override=False):
         self.name = name
-        self.object = None
         self.override = override
 
     def run(self):
         if self.override:
-            self.mesh = new_mesh(self.name)
-            self.object = new_object(self.name, self.mesh)
-        else:
-            self.object = bpy.data.objects[self.name]
-
-    def __del__(self):
-        if self.override:
-            delete(bpy.data.meshes, self.name)
-            delete(bpy.data.objects, self.name)
+            mesh = new_mesh(self.name)
+            new_object(self.name, mesh)
 
 
 @A.register
@@ -98,6 +90,33 @@ class MeshSequence(IRun):
         self.update = update
 
         self.cache = []
+
+        # Make the stupid `StructRNA` happy:
+        old_name = self.object.name
+        object = bpy.data.objects[old_name]
+        old_mesh = object.data.name
+        new_mesh = None
+
+        @bpy.app.handlers.persistent
+        def save_pre(self):
+            try:
+                nonlocal new_mesh
+                object = bpy.data.objects[old_name]
+                new_mesh = object.data.name
+                object.data = bpy.data.meshes[old_mesh]
+            except Exception as e:
+                print('save_pre', repr(e))
+
+        @bpy.app.handlers.persistent
+        def save_post(self):
+            try:
+                object = bpy.data.objects[old_name]
+                object.data = bpy.data.meshes[new_mesh]
+            except Exception as e:
+                print('save_post', repr(e))
+
+        bpy.app.handlers.save_pre.append(save_pre)
+        bpy.app.handlers.save_post.append(save_post)
 
     @ti.kernel
     def _export(self, f: ti.template(), out: ti.ext_arr(), dim: ti.template()):
@@ -126,18 +145,15 @@ class MeshSequence(IRun):
             self.cache.append(mesh_name)
 
         mesh_name = self.cache[frameid]
-        self.object.object.data = bpy.data.meshes[mesh_name]
-
-    def __del__(self):
-        for mesh_name in self.cache:
-            delete(bpy.data.meshes, mesh_name)
+        object = bpy.data.objects[self.object.name]
+        object.data = bpy.data.meshes[mesh_name]
 
 
 @A.register
 class RenderOutput(INode):
     '''
     Name: render_output
-    Category: blender
+    Category: output
     Inputs: image:vf
     Output:
     '''
@@ -262,7 +278,6 @@ class DebugInfo:
 
     def __init__(self, data):
         self.data = data
-        raise NotImplementedError('WIP')
 
 
 def register():
