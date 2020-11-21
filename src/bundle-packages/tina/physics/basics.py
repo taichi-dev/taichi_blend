@@ -9,7 +9,7 @@ def LaplacianBlur(x):
     Inputs: source:f
     Output: result:f
     '''
-    return A.mix_value(x, A.field_laplacian(A.bound_sample(x)), 1, 1)
+    return A.mix_value(x, A.field_laplacian(A.clamp_sample(x)), 1, 1)
 
 
 @A.register
@@ -20,7 +20,7 @@ def LaplacianStep(pos, vel, kappa):
     Inputs: pos:f vel:f kappa:c
     Output: vel:f
     '''
-    return A.mix_value(vel, A.field_laplacian(A.bound_sample(pos)), 1, kappa)
+    return A.mix_value(vel, A.field_laplacian(A.boundary_sample(pos)), 1, kappa)
 
 
 @A.register

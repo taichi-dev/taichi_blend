@@ -4,7 +4,7 @@ from . import *
 @A.register
 class Def(IField):
     '''
-    Name: bound_sample
+    Name: clamp_sample
     Category: sampler
     Inputs: source:f
     Output: result:f

@@ -161,8 +161,9 @@ from . import declare_field
 from . import constant_field
 from . import uniform_field
 from . import flatten_field
-from . import bound_sample
+from . import clamp_sample
 from . import repeat_sample 
+from . import boundary_sample
 from . import mix_value
 from . import lerp_value
 from . import map_range

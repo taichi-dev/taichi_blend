@@ -18,6 +18,7 @@ class TaichiWorker:
         self.t.start()
 
         self.table = None
+        self.output = None
 
     def stop(self):
         print('Stopping worker')
@@ -79,8 +80,15 @@ def apply_main(ui):
     @worker.launch
     def result(self):
         self.table = taichi_init()
-        output = self.table['Output Tasks']
-        output.start.run()
+        self.output = None
+        for name in ['Output Tasks', 'Output Mesh Animation']:
+            if name in self.table:
+                self.output = self.table[name]
+                break
+        else:
+            raise ValueError('No output node!')
+
+        self.output.start.run()
 
     worker.wait_done()
     if result[0] is not None:
@@ -93,13 +101,12 @@ def apply_main(ui):
 
 @bpy.app.handlers.persistent
 def frame_update_callback(*args):
-    if worker is None or worker.table is None:
+    if worker is None or worker.output is None:
         return
 
     @worker.launch
     def result(self):
-        output = self.table['Output Tasks']
-        output.update.run()
+        self.output.update.run()
 
     worker.wait_done()
 

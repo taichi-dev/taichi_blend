@@ -59,20 +59,25 @@ class NewMeshObject(IRun):
     '''
     Name: new_mesh_object
     Category: blender
-    Inputs: target:so
+    Inputs: target:so override:b
     Output: create:t object:a
     '''
-    def __init__(self, name):
+    def __init__(self, name, override=False):
         self.name = name
         self.object = None
+        self.override = override
 
     def run(self):
-        self.mesh = new_mesh(self.name)
-        self.object = new_object(self.name, self.mesh)
+        if self.override:
+            self.mesh = new_mesh(self.name)
+            self.object = new_object(self.name, self.mesh)
+        else:
+            self.object = bpy.data.objects[self.name]
 
     def __del__(self):
-        delete(bpy.data.meshes, self.name)
-        delete(bpy.data.objects, self.name)
+        if self.override:
+            delete(bpy.data.meshes, self.name)
+            delete(bpy.data.objects, self.name)
 
 
 @A.register
@@ -192,13 +197,29 @@ class CurrentFrame(A.uniform_field, IRun):
 
 
 @A.register
-class OutputTasks(IRun):
+def OutputMeshAnimation(target, override, verts, start, update):
+    '''
+    Name: output_mesh_animation
+    Category: output
+    Inputs: target:so override:b verts:vf start:t update:t
+    Output:
+    '''
+
+    object = NewMeshObject(target, override)
+    start = A.merge_tasks(object, start)
+    update = MeshSequence(object, verts, update)
+    return OutputTasks(start, update)
+
+
+@A.register
+class OutputTasks(INode):
     '''
     Name: output_tasks
     Category: output
     Inputs: start:t update:t
     Output:
     '''
+
     def __init__(self, start, update):
         assert isinstance(start, IRun)
         assert isinstance(update, IRun)

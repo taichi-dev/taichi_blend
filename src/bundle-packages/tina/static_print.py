@@ -5,7 +5,7 @@ from . import *
 class Def(IRun):
     '''
     Name: static_print
-    Category: output
+    Category: misc
     Inputs: value:a
     Output: task:t
     '''
