@@ -15,7 +15,7 @@ class Def(IField):
 
         self.src = src
         self.dim = len(self.src.meta.shape)
-        self.meta = A.edit_meta(FMeta(self.src), vdims=self.dim)
+        self.meta = MEdit(FMeta(self.src), vdims=self.dim)
 
     @ti.func
     def _subscript(self, I):

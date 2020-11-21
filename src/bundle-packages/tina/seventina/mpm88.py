@@ -1,0 +1,153 @@
+from . import *
+import time
+
+
+@ti.func
+def list_subscript(a, i):
+    '''magic method to subscript a list with dynamic index'''
+    ret = sum(a) * 0
+    for j in ti.static(range(len(a))):
+        if i == j:
+            ret = a[j]
+    return ret
+
+
+@A.register
+class MPMSolver(IField, IRun):
+    '''
+    Name: mpm_fluid_solver
+    Category: physics
+    Inputs: dim:i n_grid:i elastic:c gravity:c3
+    Output: pos:vf update:t
+    '''
+
+    def __init__(self, dim=3, n_grid=32, E=400, gravity=(0, 9.8, 0)):
+        self.dim = dim
+        self.n_grid = n_grid
+        self.dt = 1.8e-2 / self.n_grid
+        self.steps = int(0.02 / self.dt)
+
+        self.n_particles = self.n_grid ** self.dim // 2 ** (self.dim - 1)
+        self.dx = 1 / self.n_grid
+
+        self.p_rho = 1
+        self.p_vol = (self.dx * 0.5)**2
+        self.p_mass = self.p_vol * self.p_rho
+        self.gravity = tovector(gravity)
+        self.bound = 3
+        self.E = E
+
+        self.x = ti.Vector.field(self.dim, float, self.n_particles)
+        self.v = ti.Vector.field(self.dim, float, self.n_particles)
+        self.C = ti.Matrix.field(self.dim, self.dim, float, self.n_particles)
+        self.J = ti.field(float, self.n_particles)
+
+        self.grid_v = ti.Vector.field(self.dim, float, (self.n_grid,) * self.dim)
+        self.grid_m = ti.field(float, (self.n_grid,) * self.dim)
+
+        self.meta = C.float(self.dim)[self.n_particles]
+
+        @ti.materialize_callback
+        @ti.kernel
+        def init_J():
+            for i in self.J:
+                self.J[i] = 1
+
+
+    @ti.kernel
+    def substep(self):
+        for I in ti.grouped(self.grid_m):
+            self.grid_v[I] = self.grid_v[I] * 0
+            self.grid_m[I] = 0
+        ti.block_dim(self.n_grid)
+        for p in self.x:
+            Xp = self.x[p] / self.dx
+            base = int(Xp - 0.5)
+            fx = Xp - base
+            w = [0.5 * (1.5 - fx)**2, 0.75 - (fx - 1)**2, 0.5 * (fx - 0.5)**2]
+            stress = -self.dt * 4 * self.E * self.p_vol * (self.J[p] - 1) / self.dx**2
+            affine = ti.Matrix.identity(float, self.dim) * stress + self.p_mass * self.C[p]
+            for offset in ti.grouped(ti.ndrange(*[3] * self.dim)):
+                dpos = (offset - fx) * self.dx
+                weight = 1.0
+                for i in ti.static(range(self.dim)):
+                    weight *= list_subscript(w, offset[i])[i]
+                self.grid_v[base + offset] += weight * (self.p_mass * self.v[p] + affine @ dpos)
+                self.grid_m[base + offset] += weight * self.p_mass
+        for I in ti.grouped(self.grid_m):
+            if self.grid_m[I] > 0:
+                self.grid_v[I] /= self.grid_m[I]
+            self.grid_v[I] -= self.dt * self.gravity
+            cond = I < self.bound and self.grid_v[I] < 0 or I > self.n_grid - self.bound and self.grid_v[I] > 0
+            self.grid_v[I] = 0 if cond else self.grid_v[I]
+        ti.block_dim(self.n_grid)
+        for p in self.x:
+            Xp = self.x[p] / self.dx
+            base = int(Xp - 0.5)
+            fx = Xp - base
+            w = [0.5 * (1.5 - fx)**2, 0.75 - (fx - 1)**2, 0.5 * (fx - 0.5)**2]
+            new_v = self.v[p] * 0
+            new_C = self.C[p] * 0
+            for offset in ti.grouped(ti.ndrange(*[3] * self.dim)):
+                dpos = (offset - fx) * self.dx
+                weight = 1.0
+                for i in ti.static(range(self.dim)):
+                    weight *= list_subscript(w, offset[i])[i]
+                g_v = self.grid_v[base + offset]
+                new_v += weight * g_v
+                new_C += 4 * weight * g_v.outer_product(dpos) / self.dx**2
+            self.v[p] = new_v
+            self.x[p] += self.dt * self.v[p]
+            self.J[p] *= 1 + self.dt * new_C.trace()
+            self.C[p] = new_C
+
+
+    @ti.func
+    def _subscript(self, I):
+        return self.x[I]
+
+
+    def run(self):
+        for s in range(self.steps):
+            self.substep()
+
+'''
+    def T(self, a):
+        if self.dim == 2:
+            return a
+
+        import numpy as np
+
+        phi, theta = np.radians(28), np.radians(32)
+
+        a = a - 0.5
+        x, y, z = a[:, 0], a[:, 1], a[:, 2]
+        c, s = np.cos(phi), np.sin(phi)
+        C, S = np.cos(theta), np.sin(theta)
+        x, z = x * c + z * s, z * c - x * s
+        u, v = x, y * C + z * S
+        return np.array([u, v]).swapaxes(0, 1) + 0.5
+
+
+    @ti.kernel
+    def init(self):
+        for i in range(self.n_particles):
+            self.x[i] = ti.Vector([ti.random() for i in range(self.dim)]) * 0.4 + 0.15
+
+
+    def main(self):
+        print(f'Running with {self.n_particles} parcticles...')
+        t0 = time.time()
+        self.init()
+        t1 = time.time()
+        print(t1 - t0)
+        with ti.GUI(f'MPM{self.dim}D', background_color=0x112F41) as gui:
+            while gui.running and not gui.get_event(gui.ESCAPE):
+                self.run()
+                pos = self.x.to_numpy()
+                gui.circles(self.T(pos), radius=1.5, color=0x66ccff)
+                gui.show()
+'''
+
+
+Def = MPMSolver

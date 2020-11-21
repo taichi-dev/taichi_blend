@@ -1,73 +1,4 @@
-import taichi as ti
-
-
-setattr(ti, 'static', lambda x, *xs: [x] + list(xs) if xs else x) or setattr(
-        ti.Matrix, 'element_wise_writeback_binary', (lambda f: lambda x, y, z:
-        (y.__name__ != 'assign' or not setattr(y, '__name__', '_assign'))
-        and f(x, y, z))(ti.Matrix.element_wise_writeback_binary)) or setattr(
-        ti.Matrix, 'is_global', (lambda f: lambda x: len(x) and f(x))(
-        ti.Matrix.is_global))
-
-
-def V(*xs):
-    return ti.Vector(xs)
-
-
-def totuple(x):
-    if x is None:
-        x = []
-    if isinstance(x, ti.Matrix):
-        x = x.entries
-    if isinstance(x, list):
-        x = tuple(x)
-    if not isinstance(x, tuple):
-        x = x,
-    if isinstance(x, tuple) and len(x) and x[0] is None:
-        x = []
-    return x
-
-
-def tovector(x):
-    return ti.Vector(totuple(x))
-
-
-def vconcat(*xs):
-    res = []
-    for x in xs:
-        if isinstance(x, ti.Matrix):
-            res.extend(x.entries)
-        else:
-            res.append(x)
-    return ti.Vector(res)
-
-
-@ti.func
-def clamp(x, xmin, xmax):
-    return min(xmax, max(xmin, x))
-
-
-@ti.func
-def bilerp(f: ti.template(), pos):
-    p = float(pos)
-    I = int(ti.floor(p))
-    x = p - I
-    y = 1 - x
-    ti.static_assert(len(f.meta.shape) == 2)
-    return (f[I + V(1, 1)] * x[0] * x[1] +
-            f[I + V(1, 0)] * x[0] * y[1] +
-            f[I + V(0, 0)] * y[0] * y[1] +
-            f[I + V(0, 1)] * y[0] * x[1])
-
-
-def dtype_from_name(name):
-    dtypes = 'i8 i16 i32 i64 u8 u16 u32 u64 f32 f64'.split()
-    if name in dtypes:
-        return getattr(ti, name)
-    if name == 'float':
-        return float
-    if name == 'int':
-        return int
-    assert False, name
+from .utils import *
 
 
 @eval('lambda x: x()')
@@ -215,6 +146,7 @@ class IField:
 from . import get_meta
 from .get_meta import FMeta
 from . import edit_meta
+from .edit_meta import MEdit
 from . import specify_meta
 from .declare_field import Field
 from . import cache_field
@@ -250,39 +182,7 @@ from . import repeat_task
 from . import null_task
 from . import canvas_visualize
 from . import static_print
-
-
-@A.register
-def LaplacianBlur(x):
-    '''
-    Name: laplacian_blur
-    Category: stencil
-    Inputs: source:f
-    Output: result:f
-    '''
-    return A.mix_value(x, A.field_laplacian(A.bound_sample(x)), 1, 1)
-
-
-@A.register
-def LaplacianStep(pos, vel, kappa):
-    '''
-    Name: laplacian_step
-    Category: physics
-    Inputs: pos:f vel:f kappa:c
-    Output: vel:f
-    '''
-    return A.mix_value(vel, A.field_laplacian(A.bound_sample(pos)), 1, kappa)
-
-
-@A.register
-def PosAdvect(pos, vel, dt):
-    '''
-    Name: advect_position
-    Category: physics
-    Inputs: pos:f vel:f dt:c
-    Output: pos:f
-    '''
-    return A.mix_value(pos, vel, 1, dt)
+from . import seventina
 
 
 __all__ = ['ti', 'A', 'C', 'IRun', 'IField', 'Meta', 'Field', 'FMeta',

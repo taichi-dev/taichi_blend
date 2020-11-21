@@ -2,7 +2,7 @@ from . import *
 
 
 @A.register
-class Def(Meta):
+class MEdit(Meta):
     '''
     Name: edit_meta
     Category: meta
@@ -40,3 +40,6 @@ class Def(Meta):
             self.shape = totuple(shape)
         if evdims:
             self.vdims = totuple(vdims)
+
+
+Def = MEdit
