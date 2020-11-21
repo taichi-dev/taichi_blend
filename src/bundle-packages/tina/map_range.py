@@ -4,7 +4,7 @@ from . import *
 @A.register
 class Def(IField):
     '''
-    Name: map_value
+    Name: map_range
     Category: converter
     Inputs: value:f src0:c src1:c dst0:c dst1:c clamp:b
     Output: result:f

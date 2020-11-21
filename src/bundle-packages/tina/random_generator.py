@@ -6,16 +6,18 @@ class Def(IField):
     '''
     Name: random_generator
     Category: texture
-    Inputs: dim:i
+    Inputs: min:c max:c dim:i
     Output: sample:f
     '''
 
-    def __init__(self, dim=0):
+    def __init__(self, min=0, max=1, dim=0):
+        self.min = min
+        self.max = max
         self.dim = dim
 
     @ti.func
     def random(self):
-        return ti.random()
+        return ti.random() * (self.max - self.min) + self.min
 
     @ti.func
     def _subscript(self, I):
