@@ -79,7 +79,7 @@ def apply_main():
         output.start.run()
 
     worker.wait_done()
-    bpy.context.scene.frame_current = 0
+    bpy.context.scene.frame_current = bpy.context.scene.frame_start
 
 
 @bpy.app.handlers.persistent

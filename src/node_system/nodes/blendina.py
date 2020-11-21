@@ -31,9 +31,13 @@ def mesh_update(mesh, verts=None, edges=None, faces=None):
     mesh.update()
 
 
+def delete(array, name):
+    if name in array:
+        array.remove(array[name])
+
+
 def new_mesh(name, verts=None, edges=None, faces=None):
-    if name in bpy.data.meshes:
-        bpy.data.meshes.remove(bpy.data.meshes[name])
+    delete(bpy.data.meshes, name)
     mesh = bpy.data.meshes.new(name)
     verts = verts.tolist() if verts is not None else []
     edges = edges.tolist() if edges is not None else []
@@ -43,8 +47,7 @@ def new_mesh(name, verts=None, edges=None, faces=None):
 
 
 def new_object(name, mesh):
-    if name in bpy.data.objects:
-        bpy.data.objects.remove(bpy.data.objects[name])
+    delete(bpy.data.objects, name)
     obj = bpy.data.objects.new(name, mesh)
     bpy.context.collection.objects.link(obj)
     bpy.context.view_layer.objects.active = obj
@@ -57,31 +60,39 @@ class NewMeshObject(IRun):
     Name: new_mesh_object
     Category: blender
     Inputs: target:so
-    Output: task:t object:a
+    Output: create:t object:a
     '''
     def __init__(self, name):
         self.name = name
         self.object = None
 
     def run(self):
-        mesh = new_mesh(self.name)
-        self.object = new_object(self.name, mesh)
+        self.mesh = new_mesh(self.name)
+        self.object = new_object(self.name, self.mesh)
+
+    def __del__(self):
+        delete(bpy.data.meshes, self.name)
+        delete(bpy.data.objects, self.name)
 
 
 @A.register
-class MeshUpdate(IRun):
+class MeshSequence(IRun):
     '''
-    Name: mesh_update
+    Name: mesh_sequence
     Category: blender
-    Inputs: object:a verts:vf
-    Output: task:t
+    Inputs: object:a verts:vf update:t
+    Output: update:t
     '''
-    def __init__(self, object, verts):
+    def __init__(self, object, verts, update):
         assert isinstance(verts, IField)
         assert isinstance(object, NewMeshObject)
+        assert isinstance(update, IRun)
 
         self.verts = verts
         self.object = object
+        self.update = update
+
+        self.cache = []
 
     @ti.kernel
     def _export(self, f: ti.template(), out: ti.ext_arr(), dim: ti.template()):
@@ -89,13 +100,32 @@ class MeshUpdate(IRun):
             for j in ti.static(range(dim)):
                 out[I, j] = f[I][j]
 
-    def run(self):
-        mesh = self.object.object.data
-
+    def mesh_update(self, mesh):
+        self.update.run()
         verts = np.empty((*self.verts.meta.shape, 3))
         self._export(self.verts, verts, 3)
-
         mesh_update(mesh, verts)
+
+    def run(self):
+        frame = bpy.context.scene.frame_current
+        frame = max(frame, bpy.context.scene.frame_start)
+        frame = min(frame, bpy.context.scene.frame_end)
+        frameid = frame - bpy.context.scene.frame_start
+
+        while len(self.cache) <= frameid:
+            frame = len(self.cache) + bpy.context.scene.frame_start
+            mesh_name = f'{self.object.name}_{frame:03d}'
+            mesh = new_mesh(mesh_name)
+
+            self.mesh_update(mesh)
+            self.cache.append(mesh_name)
+
+        mesh_name = self.cache[frameid]
+        self.object.object.data = bpy.data.meshes[mesh_name]
+
+    def __del__(self):
+        for mesh_name in self.cache:
+            delete(bpy.data.meshes, mesh_name)
 
 
 @A.register
