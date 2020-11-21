@@ -419,7 +419,7 @@ class FDouble(IField, IRun):
     Name: double_buffer
     Category: storage
     Inputs: meta:m
-    Output: current:f double:f update:t
+    Output: current:f update:t
     '''
 
     def __init__(self, meta):
@@ -674,28 +674,6 @@ class FLerp(IField):
 
 
 @A.register
-class FClamp(IField):
-    '''
-    Name: clamp_value
-    Category: converter
-    Inputs: source:f min:c max:c
-    Output: clamped:f
-    '''
-
-    def __init__(self, src, min=0, max=1):
-        assert isinstance(src, IField)
-
-        self.src = src
-        self.min = min
-        self.max = max
-        self.meta = FMeta(self.src)
-
-    @ti.func
-    def _subscript(self, I):
-        return clamp(self.src[I], self.min, self.max)
-
-
-@A.register
 class FRange(IField):
     '''
     Name: map_value
@@ -943,16 +921,23 @@ class FRandom(IField):
     '''
     Name: random_generator
     Category: texture
-    Inputs:
+    Inputs: dim:i
     Output: sample:f
     '''
 
-    def __init__(self):
-        pass
+    def __init__(self, dim=0):
+        self.dim = dim
+
+    @ti.func
+    def random(self):
+        return ti.random()
 
     @ti.func
     def _subscript(self, I):
-        return ti.random()
+        if ti.static(self.dim == 0):
+            return self.random()
+        else:
+            return ti.Vector([self.random() for i in range(self.dim)])
 
 
 @A.register

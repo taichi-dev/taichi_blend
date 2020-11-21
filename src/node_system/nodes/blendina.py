@@ -69,19 +69,32 @@ class NewEmptyMesh(IRun):
 
 
 @A.register
+def FVPack3(x, y, z):
+    '''
+    Name: pack_3d_vector
+    Category: converter
+    Inputs: x:f y:f z:f
+    Output: vector:vf
+    '''
+
+    return A.pack_vector(x, y, z)
+
+
+@A.register
 class MeshUpdate(IRun):
     '''
     Name: mesh_update
     Category: output
-    Inputs: mesh:a verts:vf
+    Inputs: mesh:a verts:vf cached:b
     Output: task:t
     '''
-    def __init__(self, mesh, verts):
+    def __init__(self, mesh, verts, cached):
         assert isinstance(verts, IField)
         assert isinstance(mesh, NewEmptyMesh)
 
         self.verts = verts
         self.mesh = mesh
+        self.cached = cached
 
     @ti.kernel
     def _export(self, f: ti.template(), out: ti.ext_arr(), dim: ti.template()):
@@ -96,22 +109,6 @@ class MeshUpdate(IRun):
         self._export(self.verts, verts, 3)
 
         mesh_update(mesh, verts)
-
-
-@A.register
-class CurrentFrameId(A.uniform_field, IRun):
-    '''
-    Name: current_frame_id
-    Category: parameter
-    Inputs:
-    Output: frame:f update:t
-    '''
-
-    def __init__(self):
-        super().__init__(Field(Meta([], int, [])))
-
-    def run(self):
-        self.value[None] = bpy.context.scene.frame_current
 
 
 @A.register
@@ -160,6 +157,22 @@ class RenderOutput:
             out[base + 1] = g
             out[base + 2] = b
             out[base + 3] = 1
+
+
+@A.register
+class CurrentFrame(A.uniform_field, IRun):
+    '''
+    Name: current_frame
+    Category: parameter
+    Inputs:
+    Output: frame:f update:t
+    '''
+
+    def __init__(self):
+        super().__init__(Field(Meta([], int, [])))
+
+    def run(self):
+        self.value[None] = bpy.context.scene.frame_current
 
 
 @A.register
