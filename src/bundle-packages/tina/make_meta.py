@@ -2,8 +2,7 @@ from . import *
 
 
 @A.register
-@ti.data_oriented
-class Meta:
+class Meta(INode):
     '''
     Name: make_meta
     Category: meta

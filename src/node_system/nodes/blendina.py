@@ -129,8 +129,7 @@ class MeshSequence(IRun):
 
 
 @A.register
-@ti.data_oriented
-class RenderOutput:
+class RenderOutput(INode):
     '''
     Name: render_output
     Category: blender

@@ -1,6 +1,11 @@
 from .utils import *
 
 
+@ti.data_oriented
+class INode:
+    pass
+
+
 @eval('lambda x: x()')
 class A:
     def __init__(self):
@@ -33,6 +38,8 @@ class A:
 
         if node_name in self.nodes:
             raise KeyError(f'Node with name `{node_name}` already registered')
+
+        cls.__name__ = node_name
 
         type2socket = {
                 'm': 'meta',
@@ -116,15 +123,13 @@ from . import make_meta
 from .make_meta import Meta, C
 
 
-@ti.data_oriented
-class IRun:
+class IRun(INode):
     @ti.kernel
     def run(self):
         raise NotImplementedError
 
 
-@ti.data_oriented
-class IField:
+class IField(INode):
     is_taichi_class = True
 
     meta = Meta()
@@ -185,4 +190,4 @@ from . import physics
 
 
 __all__ = ['ti', 'A', 'C', 'IRun', 'IField', 'Meta', 'Field', 'FMeta',
-           'clamp', 'bilerp', 'totuple', 'tovector', 'V']
+           'INode', 'clamp', 'bilerp', 'totuple', 'tovector', 'V']
