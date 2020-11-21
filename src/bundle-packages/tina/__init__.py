@@ -182,7 +182,7 @@ from . import repeat_task
 from . import null_task
 from . import canvas_visualize
 from . import static_print
-from . import seventina
+from . import physics
 
 
 __all__ = ['ti', 'A', 'C', 'IRun', 'IField', 'Meta', 'Field', 'FMeta',

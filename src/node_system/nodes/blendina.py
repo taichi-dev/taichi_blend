@@ -176,35 +176,18 @@ class CurrentFrame(A.uniform_field, IRun):
 
 
 @A.register
-class OnStart(IRun):
+class OutputTasks(IRun):
     '''
-    Name: on_start
+    Name: output_tasks
     Category: output
-    Inputs: task:t
+    Inputs: start:t update:t
     Output:
     '''
-    def __init__(self, task):
-        assert isinstance(task, IRun)
-        self.task = task
-
-    def run(self):
-        self.task.run()
-
-
-@A.register
-class OnUpdate(IRun):
-    '''
-    Name: on_update
-    Category: output
-    Inputs: task:t
-    Output:
-    '''
-    def __init__(self, task):
-        assert isinstance(task, IRun)
-        self.task = task
-
-    def run(self):
-        self.task.run()
+    def __init__(self, start, update):
+        assert isinstance(start, IRun)
+        assert isinstance(update, IRun)
+        self.start = start
+        self.update = update
 
 
 def register():

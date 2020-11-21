@@ -75,8 +75,8 @@ def apply_main():
     @worker.launch
     def _(self):
         self.table = taichi_init()
-        output = self.table['On Start']
-        output.run()
+        output = self.table['Output Tasks']
+        output.start.run()
 
     worker.wait_done()
     bpy.context.scene.frame_current = 0
@@ -89,8 +89,8 @@ def frame_update_callback(*make_the_stupid, **blender_happy):
 
     @worker.launch
     def _(self):
-        output = self.table['On Update']
-        output.run()
+        output = self.table['Output Tasks']
+        output.update.run()
 
     worker.wait_done()
 
