@@ -52,49 +52,36 @@ def new_object(name, mesh):
 
 
 @A.register
-class NewEmptyMesh(IRun):
+class NewMeshObject(IRun):
     '''
-    Name: new_empty_mesh
-    Category: output
+    Name: new_mesh_object
+    Category: blender
     Inputs: target:so
-    Output: task:t mesh:a
+    Output: task:t object:a
     '''
     def __init__(self, name):
         self.name = name
         self.object = None
 
     def run(self):
-        self.mesh = new_mesh(self.name)
-        self.object = new_object(self.name, self.mesh)
-
-
-@A.register
-def FVPack3(x, y, z):
-    '''
-    Name: pack_3d_vector
-    Category: converter
-    Inputs: x:f y:f z:f
-    Output: vector:vf
-    '''
-
-    return A.pack_vector(x, y, z)
+        mesh = new_mesh(self.name)
+        self.object = new_object(self.name, mesh)
 
 
 @A.register
 class MeshUpdate(IRun):
     '''
     Name: mesh_update
-    Category: output
-    Inputs: mesh:a verts:vf cached:b
+    Category: blender
+    Inputs: object:a verts:vf
     Output: task:t
     '''
-    def __init__(self, mesh, verts, cached):
+    def __init__(self, object, verts):
         assert isinstance(verts, IField)
-        assert isinstance(mesh, NewEmptyMesh)
+        assert isinstance(object, NewMeshObject)
 
         self.verts = verts
-        self.mesh = mesh
-        self.cached = cached
+        self.object = object
 
     @ti.kernel
     def _export(self, f: ti.template(), out: ti.ext_arr(), dim: ti.template()):
@@ -103,7 +90,7 @@ class MeshUpdate(IRun):
                 out[I, j] = f[I][j]
 
     def run(self):
-        mesh = self.mesh.mesh
+        mesh = self.object.object.data
 
         verts = np.empty((*self.verts.meta.shape, 3))
         self._export(self.verts, verts, 3)
@@ -116,7 +103,7 @@ class MeshUpdate(IRun):
 class RenderOutput:
     '''
     Name: render_output
-    Category: output
+    Category: blender
     Inputs: image:vf
     Output:
     '''
@@ -188,6 +175,18 @@ class OutputTasks(IRun):
         assert isinstance(update, IRun)
         self.start = start
         self.update = update
+
+
+@A.register
+def FVPack3(x, y, z):
+    '''
+    Name: pack_3d_vector
+    Category: converter
+    Inputs: x:f y:f z:f
+    Output: vector:vf
+    '''
+
+    return A.pack_vector(x, y, z)
 
 
 def register():

@@ -157,6 +157,10 @@ def get_node_table(node_group):
         entered = [False for i in nodes]
 
         def dfs(i):
+            if i is None:
+                return None
+
+            assert not entered[i], i
             if visited[i] is not None:
                 return visited[i]
 
@@ -164,7 +168,6 @@ def get_node_table(node_group):
             cons, name, inputs, options = nodes[i]
             args = []
             for j in inputs:
-                assert not entered[j], j
                 args.append(dfs(j))
 
             ret = cons(tuple(args), options)
