@@ -23,26 +23,29 @@ class TaichiWorker:
         print('Stopping worker')
         if self.running:
             self.running = False
-            self.q.put(lambda self: None, block=False)
+            self.q.put([None, None], lambda self: None, block=False)
 
     def main(self):
         print('Worker started')
         while self.running:
             try:
-                func = self.q.get(block=True, timeout=1)
+                func, resptr = self.q.get(block=True, timeout=1)
             except queue.Empty:
                 continue
 
             try:
                 func(self)
             except Exception:
-                print('Exception while running task:')
-                print(traceback.format_exc())
+                msg = traceback.format_exc()
+                print('Exception while running task:\n' + msg)
+                resptr[0] = msg
 
             self.q.task_done()
 
     def launch(self, func):
-        self.q.put(func, block=True, timeout=None)
+        resptr = [None, None]
+        self.q.put((func, resptr), block=True, timeout=None)
+        return resptr
 
     def wait_done(self):
         self.q.join()
@@ -62,33 +65,39 @@ def render_main(width, height):
     pixels = np.empty(width * height * 4, dtype=np.float32)
 
     @worker.launch
-    def _(self):
+    def result(self):
         assert self.table is not None, 'Please APPLY the program first'
         output = self.table['Render Output']
         output.render(pixels, width, height)
 
     worker.wait_done()
+
     return pixels
 
 
-def apply_main():
+def apply_main(ui):
     @worker.launch
-    def _(self):
+    def result(self):
         self.table = taichi_init()
         output = self.table['Output Tasks']
         output.start.run()
 
     worker.wait_done()
+    if result[0] is not None:
+        ui.report({'ERROR'}, result[0])
+    else:
+        ui.report({'INFO'}, 'Taichi program applied')
+
     bpy.context.scene.frame_current = bpy.context.scene.frame_start
 
 
 @bpy.app.handlers.persistent
-def frame_update_callback(*make_the_stupid, **blender_happy):
+def frame_update_callback(*args):
     if worker is None or worker.table is None:
         return
 
     @worker.launch
-    def _(self):
+    def result(self):
         output = self.table['Output Tasks']
         output.update.run()
 

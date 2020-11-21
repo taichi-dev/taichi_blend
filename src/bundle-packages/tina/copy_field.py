@@ -5,7 +5,7 @@ from . import *
 class Def(IRun):
     '''
     Name: copy_field
-    Category: task
+    Category: storage
     Inputs: dest:f source:f
     Output: task:t
     '''

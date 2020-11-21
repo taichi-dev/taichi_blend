@@ -14,7 +14,7 @@ class TaichiBlendApplyOperator(bpy.types.Operator):
         return bpy.context.scene.taichi_node_group in bpy.data.node_groups
 
     def execute(self, context):
-        engine.apply_main()
+        engine.apply_main(self)
         return {'FINISHED'}
 
 

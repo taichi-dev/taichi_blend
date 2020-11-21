@@ -176,7 +176,6 @@ from . import gaussian_dist
 from . import field_laplacian
 from . import field_gradient
 from . import copy_field
-from . import accumate_field
 from . import merge_tasks
 from . import repeat_task
 from . import null_task

@@ -219,6 +219,32 @@ def FVPack3(x, y, z):
     return A.pack_vector(x, y, z)
 
 
+@A.register
+def Router(a):
+    '''
+    Name: socket_router
+    Category: misc
+    Inputs: a:a
+    Output: a:a
+    '''
+
+    return a
+
+
+@A.register
+class DebugInfo:
+    '''
+    Name: debug_info
+    Category: misc
+    Inputs: data:a
+    Output:
+    '''
+
+    def __init__(self, data):
+        self.data = data
+        raise NotImplementedError('WIP')
+
+
 def register():
     pass
 
