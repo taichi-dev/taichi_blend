@@ -69,15 +69,15 @@ class NewMeshObject(IRun):
     '''
     Name: new_mesh_object
     Category: blender
-    Inputs: target:so override:b
+    Inputs: target:so preserve:b
     Output: create:t object:a
     '''
-    def __init__(self, name, override=False):
+    def __init__(self, name, preserve=False):
         self.name = name
-        self.override = override
+        self.preserve = preserve
 
     def run(self):
-        if self.override:
+        if not self.preserve:
             mesh = new_mesh(self.name)
             new_object(self.name, mesh)
 
@@ -101,19 +101,20 @@ class MeshSequence(IRun):
 
         self.cache = []
 
-        # Make the stupid `StructRNA` happy:
-        old_name = self.object.name
+        if self.object.preserve:
+            # Make the stupid `StructRNA` happy:
+            old_name = self.object.name
 
-        @bpy.app.handlers.persistent
-        def save_pre(self):
-            try:
-                print('save_pre', old_name)
-                object = bpy.data.objects[old_name]
-                object.data = bpy.data.meshes[old_name]
-            except Exception as e:
-                print('save_pre', repr(e))
+            @bpy.app.handlers.persistent
+            def save_pre(self):
+                try:
+                    print('save_pre', old_name)
+                    object = bpy.data.objects[old_name]
+                    object.data = bpy.data.meshes[old_name]
+                except Exception as e:
+                    print('save_pre', repr(e))
 
-        bpy.app.handlers.save_pre.append(save_pre)
+            bpy.app.handlers.save_pre.append(save_pre)
 
     def update_data(self):
         self.update.run()
@@ -205,15 +206,15 @@ class CurrentFrame(A.uniform_field, IRun):
 
 
 @A.register
-def OutputMeshAnimation(target, override, verts, start, update):
+def OutputMeshAnimation(target, preserve, verts, start, update):
     '''
     Name: output_mesh_animation
     Category: output
-    Inputs: target:so override:b verts:vf start:t update:t
+    Inputs: target:so preserve:b verts:vf start:t update:t
     Output:
     '''
 
-    object = NewMeshObject(target, override)
+    object = NewMeshObject(target, preserve)
     start = A.merge_tasks(object, start)
     update = MeshSequence(object, update, verts)
     return OutputTasks(start, update)
