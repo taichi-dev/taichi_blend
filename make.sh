@@ -6,8 +6,8 @@ win) PIPPLAT=win_amd64;;
 osx) PIPPLAT=macosx_10_14_x86_64;;
 esac
 
-rm -rf build
 mkdir -p build
+rm -rf build/Taichi-Blend
 cp -r src build/Taichi-Blend
 mkdir -p build/Taichi-Blend/bundle-packages
 pip install --python-version $PYVERSION --platform $PIPPLAT --no-deps -r requirements.txt -t build/Taichi-Blend/bundle-packages

@@ -105,32 +105,17 @@ class MeshSequence(IRun):
 
         # Make the stupid `StructRNA` happy:
         old_name = self.object.name
-        object = bpy.data.objects[old_name]
-        old_mesh = object.data.name
-        new_mesh = None
 
         @bpy.app.handlers.persistent
         def save_pre(self):
-            print('save_pre', old_mesh)
             try:
-                nonlocal new_mesh
+                print('save_pre', old_name)
                 object = bpy.data.objects[old_name]
-                new_mesh = object.data.name
-                object.data = bpy.data.meshes[old_mesh]
+                object.data = bpy.data.meshes[old_name]
             except Exception as e:
                 print('save_pre', repr(e))
 
-        @bpy.app.handlers.persistent
-        def save_post(self):
-            print('save_post', new_mesh)
-            try:
-                object = bpy.data.objects[old_name]
-                object.data = bpy.data.meshes[new_mesh]
-            except Exception as e:
-                print('save_post', repr(e))
-
         bpy.app.handlers.save_pre.append(save_pre)
-        bpy.app.handlers.save_post.append(save_post)
 
     def update_data(self):
         self.update.run()
