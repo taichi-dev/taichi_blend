@@ -50,11 +50,12 @@ class A:
                 'a': 'any',
         }
         type2option = {
-                'dt': 'enum',
                 'i': 'int',
                 'c': 'float',
                 'b': 'bool',
                 's': 'str',
+                'dt': 'enum',
+                'fmt': 'enum',
                 'so': 'search_object',
                 'i2': 'vec_int_2',
                 'i3': 'vec_int_3',
@@ -63,6 +64,7 @@ class A:
         }
         type2items = {
                 'dt': 'float int i8 i16 i32 i64 u8 u16 u32 u64 f32 f64'.split(),
+                'fmt': 'npy npy.gz npy.xz png jpg bmp none'.split(),
         }
 
         class Def:
@@ -147,6 +149,50 @@ class IField(INode):
         for I in ti.grouped(ti.ndrange(*self.meta.shape)):
             yield I
 
+    @ti.kernel
+    def _to_numpy(self, arr: ti.ext_arr()):
+        for I in ti.static(self):
+            val = self[I]
+            if ti.static(not isinstance(val, ti.Matrix)):
+                arr[I] = val
+            elif ti.static(val.m == 1):
+                for j in ti.static(range(val.n)):
+                    arr[I, j] = val[j]
+            else:
+                raise NotImplementedError
+
+    def to_numpy(self):
+        shape = tuple(self.meta.shape) + tuple(self.meta.vdims)
+        dtype = self.meta.dtype
+        if dtype is int:
+            dtype = ti.get_runtime().default_ip
+        elif dtype is float:
+            dtype = ti.get_runtime().default_fp
+        dtype = to_numpy_type(dtype)
+        arr = np.empty(shape, dtype=dtype)
+        self._to_numpy(arr)
+        return arr
+
+    @ti.kernel
+    def _from_numpy(self, arr: ti.ext_arr()):
+        for I in ti.static(self):
+            val = ti.static(ti.subscript(self, I))
+            if ti.static(not isinstance(val, ti.Matrix)):
+                val = arr[I]
+            elif ti.static(val.m == 1):
+                for j in ti.static(range(val.n)):
+                    val[j] = arr[I, j]
+            else:
+                raise NotImplementedError
+
+    def from_numpy(self, arr):
+        assert isinstance(arr, np.ndarray), type(arr)
+        shape = tuple(self.meta.shape) + tuple(self.meta.vdims)
+        dtype = to_numpy_type(self.meta.dtype)
+        assert arr.shape == shape, (arr.shape, shape)
+        assert arr.dtype == dtype, (arr.dtype, dtype)
+        self._from_numpy(arr)
+
 
 from . import get_meta
 from .get_meta import FMeta
@@ -161,6 +207,7 @@ from . import declare_field
 from . import const_field
 from . import uniform_field
 from . import flatten_field
+from . import disk_frame_cache
 from . import clamp_sample
 from . import repeat_sample 
 from . import boundary_sample

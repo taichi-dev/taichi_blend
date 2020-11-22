@@ -14,7 +14,7 @@ class Def(IField):
         for name in 'print min max int float any all'.split():
             func = func.replace(name, 'ti.ti_' + name)
         func = eval(f'lambda x, y: ({func})')
-        return func, *args
+        return (func, *args)
 
     def __init__(self, func, *args):
         assert all(isinstance(a, IField) for a in args)

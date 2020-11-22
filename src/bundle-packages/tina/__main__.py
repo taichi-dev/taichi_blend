@@ -8,10 +8,15 @@ if __name__ == '__main__':
     A.bind_source(pos, A.advect_position(pos, vel, 0.1))
     A.bind_source(vel, A.laplacian_step(pos, vel, 1))
     init = A.merge_tasks(A.copy_field(pos, ini),
-            A.copy_field(vel, A.constant_field(0)))
+            A.copy_field(vel, A.const_field(0)))
     step = A.repeat_task(A.merge_tasks(pos, vel), 8)
     vis = A.mix_value(A.pack_vector(pos, A.field_gradient(pos)),
-            A.constant_field(1), 0.5, 0.5)
+            A.const_field(1), 0.5, 0.5)
+
+    #vis = A.disk_frame_cache('/tmp/cache', 'image', 'png',
+    #                    vis, lambda: gui.gui.frame % 120)
+    #step = A.merge_tasks(step, vis)
+
     init.run()
     gui = A.canvas_visualize(vis, step)
     gui.run()

@@ -54,7 +54,7 @@ class Def(IRun):
                 out[i] = (b << 16) + (g << 8) + r + alpha
 
     def run(self):
-        gui = ti.GUI(res=self.res, fast_gui=True)
+        self.gui = gui = ti.GUI(res=self.res, fast_gui=True)
         while gui.running:
             gui.get_event(None)
             gui.running = not gui.is_pressed(gui.ESCAPE)

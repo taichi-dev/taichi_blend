@@ -1,4 +1,5 @@
 import taichi as ti
+import numpy as np
 
 
 setattr(ti, 'static', lambda x, *xs: [x] + list(xs) if xs else x) or setattr(
@@ -68,3 +69,11 @@ def dtype_from_name(name):
     if name == 'int':
         return int
     assert False, name
+
+
+def to_numpy_type(dtype):
+    if dtype is int:
+        dtype = ti.get_runtime().default_ip
+    elif dtype is float:
+        dtype = ti.get_runtime().default_fp
+    return ti.to_numpy_type(dtype)

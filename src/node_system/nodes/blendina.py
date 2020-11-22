@@ -73,8 +73,6 @@ class NewMeshObject(IRun):
     Output: create:t object:a
     '''
     def __init__(self, name, override=False):
-        assert isinstance(name, str)
-
         self.name = name
         self.override = override
 
