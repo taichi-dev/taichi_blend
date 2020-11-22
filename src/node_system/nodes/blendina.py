@@ -3,31 +3,33 @@ from tina import *
 import bpy
 
 
-def to_numpy(b, key):
-    dim = len(getattr(b[0], key))
+def to_numpy(b, key, dim=None):
+    if dim is None:
+        dim = len(getattr(b[0], key))
     seq = [0] * (len(b) * dim)
     b.foreach_get(key, seq)
-    return np.array(seq).reshape(len(b), dim)
+    return np.array(seq)
 
 
-def from_numpy(b, key, a):
-    dim = len(getattr(b[0], key)) if len(b) else a.shape[1]
-    assert len(a.shape) == 2
-    assert a.shape[1] == dim, dim
+def from_numpy(b, key, a, dim=None):
+    if dim is None:
+        dim = len(getattr(b[0], key))
+    assert len(a.shape) == 1
     if len(b) < a.shape[0]:
         b.add(a.shape[0] - len(b))
-    seq = a.reshape(a.shape[0] * dim).tolist()
-    seq = seq + [0] * (len(b) * dim - len(seq))
+    seq = a.tolist()  # bottleneck
+    if len(seq) < len(b) * dim:
+        seq = seq + [0] * (len(b) * dim - len(seq))
     b.foreach_set(key, seq)
 
 
-def mesh_update(mesh, verts=None, edges=None, faces=None):
+def mesh_update(mesh, verts=None, edges=None, faces=None, npoly=None):
     if verts is not None:
-        from_numpy(mesh.vertices, 'co', verts)
+        from_numpy(mesh.vertices, 'co', verts, 3)
     if edges is not None:
-        from_numpy(mesh.edges, 'vertices', edges)
+        from_numpy(mesh.edges, 'vertices', edges, 2)
     if faces is not None:
-        from_numpy(mesh.polygons, 'vertices', faces)
+        from_numpy(mesh.polygons, 'vertices', faces, npoly)
     mesh.update()
 
 
@@ -54,6 +56,14 @@ def new_object(name, mesh):
     return obj
 
 
+@ti.kernel
+def export_vfield(f: ti.template(), out: ti.ext_arr(), dim: ti.template()):
+    for I in ti.static(f):
+        vec = f[I]
+        for j in ti.static(range(dim)):
+            out[I[0] * dim + j] = vec[j]
+
+
 @A.register
 class NewMeshObject(IRun):
     '''
@@ -63,6 +73,8 @@ class NewMeshObject(IRun):
     Output: create:t object:a
     '''
     def __init__(self, name, override=False):
+        assert isinstance(name, str)
+
         self.name = name
         self.override = override
 
@@ -77,13 +89,13 @@ class MeshSequence(IRun):
     '''
     Name: mesh_sequence
     Category: blender
-    Inputs: object:a verts:vf update:t
+    Inputs: object:a update:t verts:vf
     Output: update:t
     '''
-    def __init__(self, object, verts, update):
-        assert isinstance(verts, IField)
+    def __init__(self, object, update, verts):
         assert isinstance(object, NewMeshObject)
         assert isinstance(update, IRun)
+        assert isinstance(verts, IField)
 
         self.verts = verts
         self.object = object
@@ -99,6 +111,7 @@ class MeshSequence(IRun):
 
         @bpy.app.handlers.persistent
         def save_pre(self):
+            print('save_pre', old_mesh)
             try:
                 nonlocal new_mesh
                 object = bpy.data.objects[old_name]
@@ -109,6 +122,7 @@ class MeshSequence(IRun):
 
         @bpy.app.handlers.persistent
         def save_post(self):
+            print('save_post', new_mesh)
             try:
                 object = bpy.data.objects[old_name]
                 object.data = bpy.data.meshes[new_mesh]
@@ -118,17 +132,12 @@ class MeshSequence(IRun):
         bpy.app.handlers.save_pre.append(save_pre)
         bpy.app.handlers.save_post.append(save_post)
 
-    @ti.kernel
-    def _export(self, f: ti.template(), out: ti.ext_arr(), dim: ti.template()):
-        for I in ti.static(f):
-            for j in ti.static(range(dim)):
-                out[I, j] = f[I][j]
-
-    def mesh_update(self, mesh):
+    def update_data(self):
         self.update.run()
-        verts = np.empty((*self.verts.meta.shape, 3))
-        self._export(self.verts, verts, 3)
-        mesh_update(mesh, verts)
+        assert len(self.verts.meta.shape) == 1, 'please use A.flatten_field'
+        verts = np.empty(self.verts.meta.shape[0] * 3)
+        export_vfield(self.verts, verts, 3)
+        return verts,
 
     def run(self):
         frame = bpy.context.scene.frame_current
@@ -139,9 +148,9 @@ class MeshSequence(IRun):
         while len(self.cache) <= frameid:
             frame = len(self.cache) + bpy.context.scene.frame_start
             mesh_name = f'{self.object.name}_{frame:03d}'
-            mesh = new_mesh(mesh_name)
-
-            self.mesh_update(mesh)
+            data = self.update_data()
+            mesh = new_mesh(mesh_name)#, *data)
+            mesh_update(mesh, *data)
             self.cache.append(mesh_name)
 
         mesh_name = self.cache[frameid]
@@ -223,7 +232,7 @@ def OutputMeshAnimation(target, override, verts, start, update):
 
     object = NewMeshObject(target, override)
     start = A.merge_tasks(object, start)
-    update = MeshSequence(object, verts, update)
+    update = MeshSequence(object, update, verts)
     return OutputTasks(start, update)
 
 

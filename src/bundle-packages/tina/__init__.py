@@ -158,7 +158,7 @@ from . import cache_field
 from . import double_buffer
 from . import bind_source
 from . import declare_field
-from . import constant_field
+from . import const_field
 from . import uniform_field
 from . import flatten_field
 from . import clamp_sample

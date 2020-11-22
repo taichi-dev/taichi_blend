@@ -4,7 +4,7 @@ from . import *
 @A.register
 class Def(IField):
     '''
-    Name: constant_field
+    Name: const_field
     Category: parameter
     Inputs: value:c
     Output: field:f
