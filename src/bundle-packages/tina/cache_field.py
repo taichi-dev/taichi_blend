@@ -7,7 +7,7 @@ class Def(IField, IRun):
     Name: cache_field
     Category: storage
     Inputs: source:f
-    Output: cached:f update:t
+    Output: cached:cf update:t
     '''
 
     def __init__(self, src):

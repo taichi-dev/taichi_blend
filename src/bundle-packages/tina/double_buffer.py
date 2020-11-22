@@ -7,7 +7,7 @@ class Def(IField, IRun):
     Name: double_buffer
     Category: storage
     Inputs: meta:m
-    Output: current:f update:t
+    Output: current:cf update:t
     '''
 
     def __init__(self, meta):

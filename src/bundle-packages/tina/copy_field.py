@@ -6,9 +6,12 @@ class Def(IRun):
     '''
     Name: copy_field
     Category: storage
-    Inputs: dest:f source:f
+    Inputs: source:f dest:cf
     Output: task:t
     '''
+
+    def ns_convert(src, dst):
+        return dst, src
 
     def __init__(self, dst, src):
         assert isinstance(dst, IField)

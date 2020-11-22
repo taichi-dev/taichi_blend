@@ -8,8 +8,8 @@ class Def(IField, IRun):
     '''
     Name: disk_frame_cache
     Category: storage
-    Inputs: path:s prefix:s format:fmt field:f update:t
-    Output: cached:f update:t
+    Inputs: path:s prefix:s format:fmt field:cf update:t
+    Output: cached:cf update:t
     '''
 
     def ns_convert(*args):

@@ -44,7 +44,7 @@ class A:
         type2socket = {
                 'm': 'meta',
                 'f': 'field',
-                'of': 'object_field',
+                'cf': 'cached_field',
                 'vf': 'vector_field',
                 't': 'task',
                 'a': 'any',

@@ -6,8 +6,8 @@ def Def(buf, src):
     '''
     Name: bind_source
     Category: storage
-    Inputs: double:f source:f
-    Output: double:f
+    Inputs: double:cf source:f
+    Output: double:cf
     '''
     assert isinstance(buf, A.double_buffer)
     assert isinstance(src, IField)

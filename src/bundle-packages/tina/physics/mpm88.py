@@ -17,7 +17,7 @@ class MPMSolver(IField, IRun):
     Name: mpm_fluid_solver
     Category: physics
     Inputs: dim:i n_grid:i elastic:c gravity:c3
-    Output: pos:vf update:t
+    Output: pos:cf update:t
     '''
 
     def __init__(self, dim=3, n_grid=32, E=400, gravity=(0, 9.8, 0)):
