@@ -5,7 +5,7 @@ from . import *
 class Def(IRun):
     '''
     Name: canvas_visualize
-    Category: misc
+    Category: render
     Inputs: image:vf update:t res:i2
     Output: task:t
     '''
@@ -61,5 +61,4 @@ class Def(IRun):
             self.update.run()
             self.render(gui.img, gui.res)
             gui.show()
-
-
+        del self.gui

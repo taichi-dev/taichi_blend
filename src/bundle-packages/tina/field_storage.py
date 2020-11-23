@@ -4,10 +4,10 @@ from . import *
 @A.register
 class Field(IField):
     '''
-    Name: declare_field
+    Name: field_storage
     Category: storage
     Inputs: meta:m
-    Output: field:f
+    Output: field:cf
     '''
 
     def __init__(self, meta):

@@ -6,3 +6,6 @@ __pycache__
 *.blend
 .vscode
 /dist
+*.png
+*.jpg
+*.xcf

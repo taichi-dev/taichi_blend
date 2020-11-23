@@ -3,12 +3,12 @@ from tina import *
 import bpy
 
 
-def to_numpy(b, key, dim=None):
+def to_numpy(b, key, dim=None, dtype=None):
     if dim is None:
         dim = len(getattr(b[0], key))
     seq = [0] * (len(b) * dim)
     b.foreach_get(key, seq)
-    return np.array(seq)
+    return np.array(seq, dtype=dtype)
 
 
 def from_numpy(b, key, a, dim=None):
@@ -62,6 +62,52 @@ def export_vfield(f: ti.template(), out: ti.ext_arr(), dim: ti.template()):
         vec = f[I]
         for j in ti.static(range(dim)):
             out[I[0] * dim + j] = vec[j]
+
+
+@A.register
+class InputMeshObject(IField, IRun, IMatrix):
+    '''
+    Name: input_mesh_object
+    Category: input
+    Inputs: object:so maxverts:i
+    Output: verts:cf update:t trans:x
+    '''
+    def __init__(self, name, maxverts):
+        self.name = name
+
+        self.meta = C.float(3)[maxverts]
+        self.verts = Field(self.meta)
+        self.nverts = Field(C.int[None])
+        self.maxverts = maxverts
+
+        IMatrix.__init__(self)
+
+    def run(self):
+        mesh = bpy.data.objects[self.name].data
+        verts = to_numpy(mesh.vertices, 'co', 3, np.float32)
+        nverts = len(mesh.vertices)
+        if nverts > self.maxverts:
+            raise ValueError(f'Please increase maxverts: {nverts} > {self.maxverts}')
+        self._update(verts, nverts)
+
+        m = bpy.data.objects[self.name].matrix_world
+        self.matrix[None] = np.array(m).tolist()
+
+    @ti.kernel
+    def _update(self, verts: ti.ext_arr(), nverts: int):
+        self.nverts[None] = nverts
+        for i in range(nverts):
+            for j in ti.static(range(3)):
+                self.verts[i][j] = verts[i * 3 + j]
+
+    @ti.func
+    def __iter__(self):
+        for I in ti.grouped(ti.ndrange(self.nverts[None])):
+            yield I
+
+    @ti.func
+    def _subscript(self, I):
+        return self.verts[I]
 
 
 @A.register
@@ -121,7 +167,7 @@ class MeshSequence(IRun):
         assert len(self.verts.meta.shape) == 1, 'please use A.flatten_field'
         verts = np.empty(self.verts.meta.shape[0] * 3)
         export_vfield(self.verts, verts, 3)
-        return verts,
+        return verts
 
     def run(self):
         frame = bpy.context.scene.frame_current
@@ -132,9 +178,10 @@ class MeshSequence(IRun):
         while len(self.cache) <= frameid:
             frame = len(self.cache) + bpy.context.scene.frame_start
             mesh_name = f'{self.object.name}_{frame:03d}'
-            data = self.update_data()
-            mesh = new_mesh(mesh_name)#, *data)
-            mesh_update(mesh, *data)
+            verts = self.update_data()
+            mesh = new_mesh(mesh_name)
+            from_numpy(mesh.vertices, 'co', verts, 3)
+            mesh.update()
             self.cache.append(mesh_name)
 
         mesh_name = self.cache[frameid]
@@ -147,13 +194,15 @@ class RenderOutput(INode):
     '''
     Name: render_output
     Category: output
-    Inputs: image:vf
+    Inputs: image:vf update:t
     Output:
     '''
-    def __init__(self, img):
+    def __init__(self, img, update):
         assert isinstance(img, IField)
+        assert isinstance(update, IRun)
 
         self.img = img
+        self.update = update
 
     def _cook(self, color):
         if isinstance(color, ti.Expr):
@@ -178,8 +227,12 @@ class RenderOutput(INode):
         color = bilerp(self.img, pos)
         return self._cook(color)
 
+    def render(self, *args):
+        self.update.run()
+        self._render(*args)
+
     @ti.kernel
-    def render(self, out: ti.ext_arr(), width: int, height: int):
+    def _render(self, out: ti.ext_arr(), width: int, height: int):
         for i, j in ti.ndrange(width, height):
             r, g, b = self.image_at(i, j, width, height)
             base = (j * width + i) * 4
@@ -188,6 +241,7 @@ class RenderOutput(INode):
             out[base + 2] = b
             out[base + 3] = 1
 
+# TODO: fix CurrentFrame/DiskFrameCache for MeshSequence on skip frame
 
 @A.register
 class CurrentFrame(A.uniform_field, IRun):
@@ -261,16 +315,33 @@ def Router(a):
 
 
 @A.register
-class DebugInfo:
+def Switch(alter, t, alt):
     '''
-    Name: debug_info
+    Name: socket_switch
     Category: misc
-    Inputs: data:a
-    Output:
+    Inputs: alter:b t:a alt:a
+    Output: out:a
+    '''
+    return alt if alter else t
+
+
+@A.register
+class PrintArray(IRun):
+    '''
+    Name: print_array
+    Category: misc
+    Inputs: value:a
+    Output: task:t
     '''
 
-    def __init__(self, data):
-        self.data = data
+    def __init__(self, value):
+        self.value = value
+
+    def run(self):
+        value = self.value.to_numpy()
+        print(value)
+        print('max:', value.max())
+        print('min:', value.min())
 
 
 def register():

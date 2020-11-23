@@ -46,6 +46,7 @@ class A:
                 'f': 'field',
                 'cf': 'cached_field',
                 'vf': 'vector_field',
+                'x': 'matrix',
                 't': 'task',
                 'a': 'any',
         }
@@ -126,8 +127,19 @@ from .make_meta import Meta, C
 
 
 class IRun(INode):
-    @ti.kernel
     def run(self):
+        raise NotImplementedError
+
+
+class IRunChain(IRun):
+    def __init__(self, chain):
+        self.chain = chain
+
+    def run(self):
+        self.chain.run()
+        self._run()
+
+    def _run(self):
         raise NotImplementedError
 
 
@@ -193,17 +205,29 @@ class IField(INode):
         assert arr.dtype == dtype, (arr.dtype, dtype)
         self._from_numpy(arr)
 
+    def __str__(self):
+        return str(self.to_numpy())
+
+
+class IMatrix(INode):
+    def __init__(self):
+        self.matrix = Field(C.float(4, 4)[None])
+
+    @ti.func
+    def get_matrix(self):
+        return self.matrix[None]
+
 
 from . import get_meta
 from .get_meta import FMeta
 from . import edit_meta
 from .edit_meta import MEdit
 from . import specify_meta
-from .declare_field import Field
+from . import field_storage
+from .field_storage import Field
 from . import cache_field
 from . import double_buffer
 from . import bind_source
-from . import declare_field
 from . import const_field
 from . import uniform_field
 from . import flatten_field
@@ -235,7 +259,8 @@ from . import null_task
 from . import canvas_visualize
 from . import static_print
 from . import physics
+from . import render
 
 
-__all__ = ['ti', 'A', 'C', 'IRun', 'IField', 'Meta', 'Field', 'FMeta',
-           'INode', 'clamp', 'bilerp', 'totuple', 'tovector', 'V']
+__all__ = ['ti', 'A', 'C', 'IRun', 'IField', 'Meta', 'Field', 'IMatrix',
+           'FMeta', 'INode', 'clamp', 'bilerp', 'totuple', 'tovector', 'V']
