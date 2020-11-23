@@ -89,10 +89,8 @@ class TaichiRenderEngine(bpy.types.RenderEngine):
     # rendered image automatically.
     def view_draw(self, context, depsgraph):
         region = context.region
+        region3d = context.region_data
         scene = depsgraph.scene
-        #view_matrix = context.region_data.view_matrix.to_4x4()
-        #window_matrix = context.region_data.window_matrix.to_4x4()
-        #perspective_matrix = context.region_data.perspective_matrix.to_4x4()
 
         # Get viewport dimensions
         dimensions = region.width, region.height
@@ -104,7 +102,7 @@ class TaichiRenderEngine(bpy.types.RenderEngine):
 
         if not self.draw_data or self.updated \
             or self.draw_data.dimensions != dimensions:
-            self.draw_data = CustomDrawData(dimensions)
+            self.draw_data = CustomDrawData(dimensions, region3d)
             self.updated = False
 
         self.draw_data.draw()
@@ -114,10 +112,11 @@ class TaichiRenderEngine(bpy.types.RenderEngine):
 
 
 class CustomDrawData:
-    def __init__(self, dimensions):
+    def __init__(self, dimensions, region3d):
         self.dimensions = dimensions
+
         width, height = dimensions
-        pixels = engine.render_main(width, height)
+        pixels = engine.render_main(width, height, region3d)
 
         # Generate dummy float image buffer
         pixels = bgl.Buffer(bgl.GL_FLOAT, width * height * 4, pixels)

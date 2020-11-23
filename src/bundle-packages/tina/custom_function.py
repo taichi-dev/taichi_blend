@@ -4,7 +4,7 @@ from . import *
 @A.register
 class Def(IField):
     '''
-    Name: apply_function
+    Name: custom_function
     Category: converter
     Inputs: func:s *args:f
     Output: result:f

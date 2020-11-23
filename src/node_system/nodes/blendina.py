@@ -70,7 +70,7 @@ class InputMeshObject(IField, IRun, IMatrix):
     Name: input_mesh_object
     Category: input
     Inputs: object:so maxverts:i
-    Output: verts:cf update:t trans:x
+    Output: verts:cf update:t local:x
     '''
     def __init__(self, name, maxverts):
         self.name = name
@@ -90,8 +90,8 @@ class InputMeshObject(IField, IRun, IMatrix):
             raise ValueError(f'Please increase maxverts: {nverts} > {self.maxverts}')
         self._update(verts, nverts)
 
-        m = bpy.data.objects[self.name].matrix_world
-        self.matrix[None] = np.array(m).tolist()
+        local = np.array(bpy.data.objects[self.name].matrix_local)
+        self.matrix[None] = local.tolist()
 
     @ti.kernel
     def _update(self, verts: ti.ext_arr(), nverts: int):
@@ -187,6 +187,28 @@ class MeshSequence(IRun):
         mesh_name = self.cache[frameid]
         object = bpy.data.objects[self.object.name]
         object.data = bpy.data.meshes[mesh_name]
+
+
+@A.register
+class RenderInputs(IMatrix):
+    '''
+    Name: render_inputs
+    Category: input
+    Inputs:
+    Output: projection:x
+    '''
+    def set_region_data(self, region3d):
+        view = np.array(region3d.view_matrix)
+        pers = np.array(region3d.perspective_matrix)
+        wind = np.array(region3d.window_matrix)
+
+        print('view:\n', view)
+        print('pers:\n', pers)
+        print('wind:\n', wind)
+
+        projection = pers @ view
+
+        self.matrix[None] = projection.tolist()
 
 
 @A.register
@@ -326,20 +348,25 @@ def Switch(alter, t, alt):
 
 
 @A.register
-class PrintArray(IRun):
+class ShowArray(IRun):
     '''
-    Name: print_array
+    Name: show_array
     Category: misc
-    Inputs: value:a
-    Output: task:t
+    Inputs: field:f update:t
+    Output: update:t
     '''
 
-    def __init__(self, value):
-        self.value = value
+    def __init__(self, field, chain):
+        super().__init__(chain)
+        assert hasattr(field, 'to_numpy')
 
-    def run(self):
-        value = self.value.to_numpy()
+        self.field = field
+
+    def _run(self):
+        value = self.field.to_numpy()
+
         print(value)
+        print('shape:', ', '.join(map(str, value.shape)))
         print('max:', value.max())
         print('min:', value.min())
 

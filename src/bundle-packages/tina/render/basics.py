@@ -2,7 +2,7 @@ from . import *
 
 
 @A.register
-class ParticleRasterize(IField, IRunChain):
+class ParticleRasterize(IField, IRun):
     '''
     Name: particle_rasterize
     Category: render
@@ -30,8 +30,10 @@ class ParticleRasterize(IField, IRunChain):
             pos = self.pos[I]
             xy = V(pos[0], pos[1])
             wh = V(*self.buf.meta.shape)
+            f = min(wh[0], wh[1]) / 2
+            c = wh / 2
 
-            uv = xy * wh
+            uv = xy * f + c
             base = int(ti.floor(uv))
 
             if all(0 <= base < wh):
@@ -39,29 +41,27 @@ class ParticleRasterize(IField, IRunChain):
 
 
 @A.register
-class ApplyTransform(IField):
+class ClearBuffer(IField, IRun):
     '''
-    Name: apply_transform
+    Name: clear_buffer
     Category: render
-    Inputs: verts:f trans:x
-    Output: verts:f
+    Inputs: buffer:cf update:t
+    Output: buffer:cf update:t
     '''
 
-    def __init__(self, pos, mat):
-        assert isinstance(pos, IField)
-        assert isinstance(mat, IMatrix)
+    def __init__(self, buf, chain):
+        super().__init__(chain)
 
-        self.pos = pos
-        self.mat = mat
-        self.meta = FMeta(self.pos)
+        assert isinstance(buf, IField)
+
+        self.buf = buf
+        self.meta = FMeta(buf)
 
     @ti.func
     def _subscript(self, I):
-        mat = self.mat.get_matrix()
-        pos = self.pos[I]
-        res = pos * 0
-        for i in ti.static(range(3)):
-            res[i] = mat[i, 3]
-        for i, j in ti.static(ti.ndrange(3, 3)):
-            res[i] += mat[i, j] * pos[j]
-        return res
+        return self.buf[I]
+
+    @ti.kernel
+    def _run(self):
+        for I in ti.static(self.buf):
+            self.buf[I] *= 0
