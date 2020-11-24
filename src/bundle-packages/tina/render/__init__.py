@@ -34,6 +34,7 @@ from . import particle_rasterize
 from . import triangle_rasterize
 from . import apply_transform
 from . import matrix_inverse
+from . import matrix_multiply
 from . import face_vertices
 from . import simple_shader
 from . import clear_buffer

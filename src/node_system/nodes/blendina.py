@@ -229,18 +229,24 @@ class RenderInputs(INode):
     Name: render_inputs
     Category: input
     Inputs:
-    Output: pers:x% view:x%
+    Output: pers:x% inv_pers:x% view:x% inv_view:x%
     '''
     def __init__(self):
         self.pers = IMatrix()
+        self.inv_pers = IMatrix()
         self.view = IMatrix()
+        self.inv_view = IMatrix()
 
     def set_region_data(self, region3d):
         pers = np.array(region3d.perspective_matrix)
+        inv_pers = np.array(region3d.perspective_matrix.inverted())
         view = np.array(region3d.view_matrix)
+        inv_view = np.array(region3d.view_matrix.inverted())
 
         self.pers.matrix[None] = pers.tolist()
+        self.inv_pers.matrix[None] = inv_pers.tolist()
         self.view.matrix[None] = view.tolist()
+        self.inv_view.matrix[None] = inv_view.tolist()
 
 
 @A.register
