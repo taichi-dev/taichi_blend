@@ -59,6 +59,15 @@ def taichi_init():
 
     name = bpy.context.scene.taichi_node_group
     table = utils.get_node_table(bpy.data.node_groups[name])
+
+    stdout = bpy.context.scene.taichi_stdout_text
+    if stdout in bpy.data.texts:
+        import sys
+        stdout = bpy.data.texts[stdout]
+        stdout.clear()
+        sys.stdout = stdout
+        sys.stderr = stdout
+
     return table
 
 

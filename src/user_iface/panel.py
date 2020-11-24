@@ -33,12 +33,15 @@ class TaichiBlendPanel(bpy.types.Panel):
 
         layout.prop_search(scene, 'taichi_node_group',
                 bpy.data, 'node_groups', text='Tree')
+        layout.prop_search(scene, 'taichi_stdout_text',
+                bpy.data, 'texts', text='Stdout')
         layout.prop(scene, 'taichi_use_backend')
         layout.operator('scene.taichi_apply')
 
 
 def register():
     bpy.types.Scene.taichi_node_group = bpy.props.StringProperty()
+    bpy.types.Scene.taichi_stdout_text = bpy.props.StringProperty()
     bpy.types.Scene.taichi_use_backend = bpy.props.EnumProperty(name='Backend',
         items=[(item.upper(), item, '') for item in [
             'CPU', 'GPU', 'CUDA', 'OpenCL', 'OpenGL', 'Metal', 'CC',
@@ -53,4 +56,5 @@ def unregister():
     bpy.utils.unregister_class(TaichiBlendApplyOperator)
 
     del bpy.types.Scene.taichi_node_group
+    del bpy.types.Scene.taichi_stdout_text
     del bpy.types.Scene.taichi_use_backend
