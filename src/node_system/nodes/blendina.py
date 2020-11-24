@@ -65,12 +65,12 @@ def export_vfield(f: ti.template(), out: ti.ext_arr(), dim: ti.template()):
 
 
 @A.register
-class InputMeshObject(IField, IRun, IMatrix):
+class InputMeshObject(IRun, IMatrix):
     '''
     Name: input_mesh_object
     Category: input
     Inputs: object:so maxverts:i
-    Output: verts:cf update:t local:x
+    Output: verts:cf% update:t local:x
     '''
     def __init__(self, name, maxverts):
         self.name = name
@@ -104,10 +104,6 @@ class InputMeshObject(IField, IRun, IMatrix):
     def __iter__(self):
         for I in ti.grouped(ti.ndrange(self.nverts[None])):
             yield I
-
-    @ti.func
-    def _subscript(self, I):
-        return self.verts[I]
 
 
 @A.register
@@ -202,13 +198,7 @@ class RenderInputs(IMatrix):
         pers = np.array(region3d.perspective_matrix)
         wind = np.array(region3d.window_matrix)
 
-        print('view:\n', view)
-        print('pers:\n', pers)
-        print('wind:\n', wind)
-
-        projection = pers @ view
-
-        self.matrix[None] = projection.tolist()
+        self.matrix[None] = pers.tolist()
 
 
 @A.register

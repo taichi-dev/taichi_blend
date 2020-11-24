@@ -145,8 +145,10 @@ def get_node_table(node_group):
                 link_node = None
                 if len(socket.links):
                     link_node = socket.links[0].from_node
+                    link_socket = socket.links[0].from_socket
+                    link_socket = list(link_node.outputs).index(link_socket)
                     link_node = node_group.nodes.keys().index(link_node.name)
-                inputs.append(link_node)
+                inputs.append((link_node, link_socket))
             ninfo = node.ns_wrapped, node.name, tuple(inputs), tuple(options)
             nodes.append(ninfo)
         return nodes
@@ -167,20 +169,23 @@ def get_node_table(node_group):
             entered[i] = True
             cons, name, inputs, options = nodes[i]
             args = []
-            for j in inputs:
-                args.append(dfs(j))
+            for j, k in inputs:
+                ret, rets = dfs(j)
+                args.append(rets[k])
 
-            ret = cons(tuple(args), options)
-            visited[i] = ret
+            res = cons(tuple(args), options)
+            visited[i] = res
             entered[i] = False
-            return ret
+            return res
 
         for i in range(len(nodes)):
             dfs(i)
 
         table = {}
         for i, ninfo in enumerate(nodes):
-            table[ninfo[1]] = visited[i]
+            name = ninfo[1]
+            ret, rets = visited[i]
+            table[name] = ret
         return table
 
     return construct_table(get_table(node_group))

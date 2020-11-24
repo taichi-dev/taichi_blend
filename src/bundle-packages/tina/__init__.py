@@ -80,6 +80,7 @@ class A:
                     inputs.append(f'{name}{i}:{type}')
 
         lut = []
+        omap = []
         iopt, isoc = 0, 0
         for i, arg in enumerate(inputs):
             name, type = arg.split(':', 1)
@@ -99,6 +100,11 @@ class A:
 
         for i, arg in enumerate(outputs):
             name, type = arg.split(':', 1)
+            if type.endswith('%'):
+                type = type[:-1]
+                omap.append(name)
+            else:
+                omap.append(None)
             socket = type2socket[type]
             setattr(Def, f'output_{i + 1}', (name, socket))
 
@@ -112,7 +118,15 @@ class A:
                     args.append(inputs[index])
             # print('===', cls, args)
             args = converter(*args)
-            return cls(*args)
+            ret = cls(*args)
+            rets = []
+            for name in omap:
+                if name is None:
+                    rets.append(ret)
+                else:
+                    rets.append(getattr(ret, name))
+            # print('---', cls, rets)
+            return ret, tuple(rets)
 
         setattr(Def, 'category', category)
         setattr(Def, 'wrapped', wrapped)
