@@ -16,6 +16,9 @@ class A:
             raise AttributeError(f'Cannot find any node matches name `{name}`')
         return self.nodes[name].original
 
+    def unregister(self, name):
+        del self.nodes[name]
+
     def register(self, cls):
         docs = cls.__doc__.strip().splitlines()
 
@@ -131,9 +134,14 @@ class A:
         setattr(Def, 'category', category)
         setattr(Def, 'wrapped', wrapped)
         setattr(Def, 'original', cls)
+
         self.nodes[node_name] = Def
+        self.register_callback(node_name, Def)
 
         return cls
+
+    def register_callback(self, name, cls):
+        pass
 
 
 from . import make_meta
@@ -218,34 +226,6 @@ class IField(INode):
         return str(self.to_numpy())
 
 
-class IMatrix(INode):  # move this to render?
-    def __init__(self):
-        self.matrix = Field(C.float(4, 4)[None])
-
-        @ti.materialize_callback
-        @ti.kernel
-        def init_matrix():
-            self.matrix[None] = ti.Matrix.identity(float, 4)
-
-    @ti.func
-    def get_matrix(self):
-        return self.matrix[None]
-
-    @ti.func
-    def apply(self, pos, wei):
-        mat = self.get_matrix()
-        res = ti.Vector([mat[i, 3] for i in range(3)]) * wei
-        for i, j in ti.static(ti.ndrange(3, 3)):
-            res[i] += mat[i, j] * pos[j]
-        rew = mat[3, 3] * wei
-        for i in ti.static(range(3)):
-            rew += mat[3, i] * pos[i]
-        return res, rew
-
-    def to_numpy(self):
-        return self.matrix[None].value.to_numpy()
-
-
 from . import get_meta
 from .get_meta import FMeta
 from . import edit_meta
@@ -285,10 +265,9 @@ from . import repeat_task
 from . import null_task
 from . import canvas_visualize
 from . import static_print
-from . import apply_transform
-from . import matrix_inverse
 from . import physics
 from . import render
+from .render import IMatrix
 
 
 __all__ = ['ti', 'A', 'C', 'IRun', 'IField', 'Meta', 'Field', 'IMatrix',

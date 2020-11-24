@@ -7,7 +7,7 @@ def to_numpy(b, key, dim=None, dtype=None):
     expect_dim = len(getattr(b[0], key)) if len(b) else None
     if dim is None:
         dim = expect_dim
-    elif expected_dim is not None:
+    elif expect_dim is not None:
         assert dim == expect_dim, f'dimension mismatch: {dim} != {expect_dim}'
     seq = [0] * (len(b) * dim)
     b.foreach_get(key, seq)
@@ -72,11 +72,12 @@ class InputMeshObject(IRun):
     '''
     Name: input_mesh_object
     Category: input
-    Inputs: object:so maxverts:i npolygon:i maxfaces:i
+    Inputs: object:so maxverts:i npolygon:i maxfaces:i modifiers:b
     Output: verts:cf% faces:cf% update:t local:x%
     '''
-    def __init__(self, name, maxverts, npolygon=0, maxfaces=0):
+    def __init__(self, name, maxverts, npolygon, maxfaces, modifiers=False):
         self.name = name
+        self.modifiers = modifiers
 
         assert maxverts != 0
         self.verts = Field(C.float(3)[maxverts])
@@ -94,9 +95,7 @@ class InputMeshObject(IRun):
 
         self.local = IMatrix()
 
-    def run(self):
-        mesh = bpy.data.objects[self.name].data
-
+    def update_mesh(self, mesh):
         verts = to_numpy(mesh.vertices, 'co', 3, np.float32)
         nverts = len(mesh.vertices)
         if nverts > self.maxverts:
@@ -114,7 +113,21 @@ class InputMeshObject(IRun):
                 raise ValueError(f'Please increase maxfaces: {nfaces} > {self.maxfaces}')
             self._update(self.faces, self.nfaces, faces, nfaces, self.npolygon)
 
-        local = np.array(bpy.data.objects[self.name].matrix_local)
+    def run(self):
+        object = bpy.data.objects[self.name]
+        if self.modifiers:
+            depsgraph = bpy.context.evaluated_depsgraph_get()
+            object_eval = object.evaluated_get(depsgraph)
+            mesh = bpy.data.meshes.new_from_object(object_eval)
+        else:
+            mesh = object.data
+
+        self.update_mesh(mesh)
+
+        if self.modifiers:
+            bpy.data.meshes.remove(mesh)
+
+        local = np.array(object.matrix_local)
         self.local.matrix[None] = local.tolist()
 
     @ti.kernel
