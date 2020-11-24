@@ -6,19 +6,21 @@ class TriangleRasterize(IRun, IField):
     '''
     Name: triangle_rasterize
     Category: render
-    Inputs: buffer:cf faverts:f shader:n update:t
+    Inputs: buffer:cf faverts:f faattrs:f shader:n update:t
     Output: buffer:cf update:t
     '''
 
-    def __init__(self, buf, pos, shader, chain):
+    def __init__(self, buf, pos, attr, shader, chain):
         super().__init__(chain)
 
         assert isinstance(buf, IField)
         assert isinstance(pos, IField)
+        assert isinstance(attr, IField)
         assert isinstance(shader, ICall)
 
         self.buf = buf
         self.pos = pos
+        self.attr = attr
         self.meta = FMeta(buf)
         self.shader = shader
 
@@ -33,6 +35,7 @@ class TriangleRasterize(IRun, IField):
 
         for I in ti.smart(self.pos):
             A, B, C = self.pos[I]
+            a_A, a_B, a_C = self.attr[I]
 
             scr_norm = (A - C).cross(B - A)
             if scr_norm <= eps:
@@ -53,5 +56,5 @@ class TriangleRasterize(IRun, IField):
                 if not is_inside:
                     continue
 
-                color = self.shader.call(w_A, w_B, w_C)
+                color = self.shader.call(a_A * w_A + a_B * w_B + a_C * w_C)
                 self.buf[X] = color
