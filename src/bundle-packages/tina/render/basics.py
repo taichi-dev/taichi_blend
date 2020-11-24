@@ -41,6 +41,59 @@ class ParticleRasterize(IField, IRun):
 
 
 @A.register
+class TriangleRasterize(IField, IRun):
+    '''
+    Name: triangle_rasterize
+    Category: render
+    Inputs: buffer:cf faverts:f update:t
+    Output: buffer:cf update:t
+    '''
+
+    def __init__(self, buf, faverts, chain):
+        super().__init__(chain)
+
+        assert isinstance(buf, IField)
+        assert isinstance(pos, IField)
+
+        self.buf = buf
+        self.faverts = faverts
+        self.meta = FMeta(buf)
+
+    @ti.func
+    def _subscript(self, I):
+        return self.buf[I]
+
+    @ti.kernel
+    def _run(self):
+        raise NotImplementedError
+
+
+@A.register
+class FaceVertices(IField):
+    '''
+    Name: particle_rasterize
+    Category: render
+    Inputs: verts:f faces:f
+    Output: faverts:f
+    '''
+
+    def __init__(self, verts, faces):
+        super().__init__(chain)
+
+        assert isinstance(verts, IField)
+        assert isinstance(faces, IField)
+
+        self.verts = verts
+        self.faces = faces
+        self.meta = MEdit(FMeta(faces), vdims=None)
+
+    @ti.func
+    def _subscript(self, I):
+        indices = self.faces[I]
+        return tuple(self.verts[i] for i in indices)
+
+
+@A.register
 class ClearBuffer(IField, IRun):
     '''
     Name: clear_buffer

@@ -91,6 +91,7 @@ class TaichiRenderEngine(bpy.types.RenderEngine):
         region = context.region
         region3d = context.region_data
         scene = depsgraph.scene
+        perspective = region3d.perspective_matrix.to_4x4()
 
         # Get viewport dimensions
         dimensions = region.width, region.height
@@ -101,8 +102,9 @@ class TaichiRenderEngine(bpy.types.RenderEngine):
         self.bind_display_space_shader(scene)
 
         if not self.draw_data or self.updated \
-            or self.draw_data.dimensions != dimensions:
-            self.draw_data = CustomDrawData(dimensions, region3d)
+            or self.draw_data.dimensions != dimensions \
+            or self.draw_data.perspective != perspective:
+            self.draw_data = CustomDrawData(dimensions, perspective, region3d)
             self.updated = False
 
         self.draw_data.draw()
@@ -112,8 +114,9 @@ class TaichiRenderEngine(bpy.types.RenderEngine):
 
 
 class CustomDrawData:
-    def __init__(self, dimensions, region3d):
+    def __init__(self, dimensions, perspective, region3d):
         self.dimensions = dimensions
+        self.perspective = perspective
 
         width, height = dimensions
         pixels = engine.render_main(width, height, region3d)

@@ -4,8 +4,11 @@ import bpy
 
 
 def to_numpy(b, key, dim=None, dtype=None):
+    expect_dim = len(getattr(b[0], key)) if len(b) else None
     if dim is None:
-        dim = len(getattr(b[0], key))
+        dim = expect_dim
+    elif expected_dim is not None:
+        assert dim == expect_dim, f'dimension mismatch: {dim} != {expect_dim}'
     seq = [0] * (len(b) * dim)
     b.foreach_get(key, seq)
     return np.array(seq, dtype=dtype)
@@ -65,40 +68,62 @@ def export_vfield(f: ti.template(), out: ti.ext_arr(), dim: ti.template()):
 
 
 @A.register
-class InputMeshObject(IRun, IMatrix):
+class InputMeshObject(IRun):
     '''
     Name: input_mesh_object
     Category: input
-    Inputs: object:so maxverts:i
-    Output: verts:cf% update:t local:x
+    Inputs: object:so maxverts:i npolygon:i maxfaces:i
+    Output: verts:cf% faces:cf% update:t local:x%
     '''
-    def __init__(self, name, maxverts):
+    def __init__(self, name, maxverts, npolygon=0, maxfaces=0):
         self.name = name
 
-        self.meta = C.float(3)[maxverts]
-        self.verts = Field(self.meta)
+        assert maxverts != 0
+        self.verts = Field(C.float(3)[maxverts])
         self.nverts = Field(C.int[None])
         self.maxverts = maxverts
 
-        IMatrix.__init__(self)
+        self.npolygon = npolygon
+        if self.npolygon:
+            assert maxfaces != 0
+            self.faces = Field(C.int(npolygon)[maxfaces])
+            self.nfaces = Field(C.int[None])
+            self.maxfaces = maxfaces
+        else:
+            self.faces = None
+
+        self.local = IMatrix()
 
     def run(self):
         mesh = bpy.data.objects[self.name].data
+
         verts = to_numpy(mesh.vertices, 'co', 3, np.float32)
         nverts = len(mesh.vertices)
         if nverts > self.maxverts:
             raise ValueError(f'Please increase maxverts: {nverts} > {self.maxverts}')
-        self._update(verts, nverts)
+        self._update(self.verts, self.nverts, verts, nverts, 3)
+
+        if self.npolygon:
+            if self.npolygon == 2:
+                faces = to_numpy(mesh.edges, 'vertices', 2, np.int32)
+                nfaces = len(mesh.edges)
+            else:
+                faces = to_numpy(mesh.polygons, 'vertices', self.npolygon, np.int32)
+                nfaces = len(mesh.polygons)
+            if nfaces > self.maxfaces:
+                raise ValueError(f'Please increase maxfaces: {nfaces} > {self.maxfaces}')
+            self._update(self.faces, self.nfaces, faces, nfaces, self.npolygon)
 
         local = np.array(bpy.data.objects[self.name].matrix_local)
-        self.matrix[None] = local.tolist()
+        self.local.matrix[None] = local.tolist()
 
     @ti.kernel
-    def _update(self, verts: ti.ext_arr(), nverts: int):
-        self.nverts[None] = nverts
+    def _update(self, self_verts: ti.template(), self_nverts: ti.template(),
+            verts: ti.ext_arr(), nverts: int, dim: ti.template()):
+        self_nverts[None] = nverts
         for i in range(nverts):
-            for j in ti.static(range(3)):
-                self.verts[i][j] = verts[i * 3 + j]
+            for j in ti.static(range(dim)):
+                self_verts[i][j] = verts[i * dim + j]
 
     @ti.func
     def __iter__(self):
@@ -186,19 +211,23 @@ class MeshSequence(IRun):
 
 
 @A.register
-class RenderInputs(IMatrix):
+class RenderInputs(INode):
     '''
     Name: render_inputs
     Category: input
     Inputs:
-    Output: projection:x
+    Output: pers:x% view:x%
     '''
-    def set_region_data(self, region3d):
-        view = np.array(region3d.view_matrix)
-        pers = np.array(region3d.perspective_matrix)
-        wind = np.array(region3d.window_matrix)
+    def __init__(self):
+        self.pers = IMatrix()
+        self.view = IMatrix()
 
-        self.matrix[None] = pers.tolist()
+    def set_region_data(self, region3d):
+        pers = np.array(region3d.perspective_matrix)
+        view = np.array(region3d.view_matrix)
+
+        self.pers.matrix[None] = pers.tolist()
+        self.view.matrix[None] = view.tolist()
 
 
 @A.register

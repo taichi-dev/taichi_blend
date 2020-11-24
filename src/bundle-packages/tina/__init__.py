@@ -124,7 +124,7 @@ class A:
                 if name is None:
                     rets.append(ret)
                 else:
-                    rets.append(getattr(ret, name))
+                    rets.append(getattr(ret, name, NotImplemented))
             # print('---', cls, rets)
             return ret, tuple(rets)
 
