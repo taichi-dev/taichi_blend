@@ -5,7 +5,7 @@ from . import *
 class Def(IRun):
     '''
     Name: repeat_task
-    Category: task
+    Category: misc
     Inputs: task:t times:i
     Output: repeated:t
     '''

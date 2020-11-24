@@ -160,7 +160,7 @@ def get_node_table(node_group):
 
         def dfs(i):
             if i is None:
-                return None
+                return None, [None]
 
             assert not entered[i], i
             if visited[i] is not None:

@@ -5,7 +5,7 @@ from . import *
 class Def(IRun):
     '''
     Name: null_task
-    Category: task
+    Category: misc
     Inputs:
     Output: task:t
     '''

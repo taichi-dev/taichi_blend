@@ -5,7 +5,7 @@ from . import *
 class Def(IField):
     '''
     Name: chessboard_texture
-    Category: texture
+    Category: sampler
     Inputs: size:i
     Output: sample:f
     '''

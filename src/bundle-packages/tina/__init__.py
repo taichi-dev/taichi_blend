@@ -17,7 +17,8 @@ class A:
         return self.nodes[name].original
 
     def unregister(self, name):
-        del self.nodes[name]
+        if name in self.nodes:
+            del self.nodes[name]
 
     def register(self, cls):
         docs = cls.__doc__.strip().splitlines()
@@ -49,6 +50,7 @@ class A:
                 'f': 'field',
                 'cf': 'cached_field',
                 'vf': 'vector_field',
+                'n': 'callable',
                 'x': 'matrix',
                 't': 'task',
                 'a': 'any',
@@ -157,6 +159,11 @@ class IRun(INode):
         self._run()
 
     def _run(self):
+        raise NotImplementedError
+
+
+class ICall:
+    def call(self, *args):
         raise NotImplementedError
 
 
@@ -270,5 +277,6 @@ from . import render
 from .render import IMatrix
 
 
-__all__ = ['ti', 'A', 'C', 'IRun', 'IField', 'Meta', 'Field', 'IMatrix',
-           'FMeta', 'INode', 'clamp', 'bilerp', 'totuple', 'tovector', 'V']
+__all__ = ['ti', 'A', 'C', 'V', 'np',
+        'IRun', 'IField', 'Meta', 'Field', 'IMatrix', 'ICall',
+        'FMeta', 'INode', 'clamp', 'bilerp', 'totuple', 'tovector']

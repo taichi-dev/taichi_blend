@@ -15,13 +15,14 @@ def make_socket(name, color):
 
 
 sockets = {
-    'field': (0.63, 0.63, 0.63),
-    'cached_field': (0.39, 0.78, 0.39),
+    'field': (0.39, 0.39, 0.39),
+    'cached_field': (0.63, 0.63, 0.63),
     'vector_field': (0.39, 0.39, 0.78),
+    'callable': (0.39, 0.78, 0.39),
     'matrix': (0.78, 0.16, 0.78),
     'task': (0.78, 0.39, 0.39),
     'meta': (0.78, 0.78, 0.16),
-    'any': (0.39, 0.39, 0.39),
+    'any': (0.16, 0.78, 0.78),
 }
 sockets = [make_socket(name, color) for name, color in sockets.items()]
 

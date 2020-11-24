@@ -5,7 +5,7 @@ from . import *
 class Def(IField):
     '''
     Name: random_generator
-    Category: texture
+    Category: sampler
     Inputs: min:c max:c dim:i
     Output: sample:f
     '''

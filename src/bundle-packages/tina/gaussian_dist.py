@@ -5,7 +5,7 @@ from . import *
 class Def(IField):
     '''
     Name: gaussian_dist
-    Category: texture
+    Category: sampler
     Inputs: center:c2 radius:c height:c
     Output: sample:f
     '''

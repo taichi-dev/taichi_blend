@@ -5,7 +5,7 @@ from . import *
 class Def(IRun):
     '''
     Name: merge_tasks
-    Category: task
+    Category: misc
     Inputs: *tasks:t
     Output: merged:t
     '''
