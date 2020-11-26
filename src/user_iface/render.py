@@ -49,6 +49,7 @@ class TaichiRenderEngine(bpy.types.RenderEngine):
     # should be read from Blender in the same thread. Typically a render
     # thread will be started to do the work while keeping Blender responsive.
     def view_update(self, context, depsgraph):
+        print('view_update')
         region = context.region
         view3d = context.space_data
         scene = depsgraph.scene
@@ -88,6 +89,7 @@ class TaichiRenderEngine(bpy.types.RenderEngine):
     # Blender will draw overlays for selection and editing on top of the
     # rendered image automatically.
     def view_draw(self, context, depsgraph):
+        print('view_draw')
         region = context.region
         region3d = context.region_data
         scene = depsgraph.scene
@@ -104,6 +106,7 @@ class TaichiRenderEngine(bpy.types.RenderEngine):
         if not self.draw_data or self.updated \
             or self.draw_data.dimensions != dimensions \
             or self.draw_data.perspective != perspective:
+            print('CustomDrawData')
             self.draw_data = CustomDrawData(dimensions, perspective, region3d)
             self.updated = False
 

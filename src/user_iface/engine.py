@@ -8,7 +8,7 @@ import time
 from ..node_system.nodes import utils
 
 
-class TaichiWorker:
+class TaichiWorkerMT:
     def __init__(self):
         self.q = queue.Queue(maxsize=4)
         self.running = True
@@ -22,9 +22,12 @@ class TaichiWorker:
 
     def stop(self):
         print('Stopping worker')
-        if self.running:
-            self.running = False
-            self.q.put((lambda self: None, [None, None]), block=False)
+        try:
+            if self.running:
+                self.running = False
+                self.q.put((lambda self: None, [None, None]), block=False)
+        except Exception as e:
+            print(e)
 
     def main(self):
         print('Worker started')
@@ -50,6 +53,26 @@ class TaichiWorker:
 
     def wait_done(self):
         self.q.join()
+
+
+class TaichiWorker:
+    def __init__(self):
+        pass
+
+    def stop(self):
+        pass
+
+    def launch(self, func):
+        try:
+            func(self)
+        except Exception:
+            msg = traceback.format_exc()
+            print('Exception while running task:\n' + msg)
+            return [msg, None]
+        return [None, None]
+
+    def wait_done(self):
+        pass
 
 
 def taichi_init():

@@ -3,7 +3,7 @@ from tina import *
 import bpy
 
 
-def to_numpy(b, key, dim=None, dtype=None):
+def to_flat_numpy(b, key, dim=None, dtype=None):
     expect_dim = len(getattr(b[0], key)) if len(b) else None
     if dim is None:
         dim = expect_dim
@@ -14,7 +14,7 @@ def to_numpy(b, key, dim=None, dtype=None):
     return np.array(seq, dtype=dtype)
 
 
-def from_numpy(b, key, a, dim=None):
+def from_flat_numpy(b, key, a, dim=None):
     if dim is None:
         dim = len(getattr(b[0], key))
     assert len(a.shape) == 1
@@ -26,13 +26,21 @@ def from_numpy(b, key, a, dim=None):
     b.foreach_set(key, seq)
 
 
+def bmesh_verts_to_numpy(bm):
+    return np.array([x.co for x in bm.verts], dtype=np.float32)
+
+
+def bmesh_faces_to_numpy(bm):
+    return np.array([[y.index for y in x.verts] for x in bm.faces], dtype=np.int32)
+
+
 def mesh_update(mesh, verts=None, edges=None, faces=None, npoly=None):
     if verts is not None:
-        from_numpy(mesh.vertices, 'co', verts, 3)
+        from_flat_numpy(mesh.vertices, 'co', verts, 3)
     if edges is not None:
-        from_numpy(mesh.edges, 'vertices', edges, 2)
+        from_flat_numpy(mesh.edges, 'vertices', edges, 2)
     if faces is not None:
-        from_numpy(mesh.polygons, 'vertices', faces, npoly)
+        from_flat_numpy(mesh.polygons, 'vertices', faces, npoly)
     mesh.update()
 
 
@@ -84,48 +92,52 @@ class InputMeshObject(IRun):
         self.nverts = Field(C.int[None])
         self.maxverts = maxverts
 
+        assert npolygon != 0
         self.npolygon = npolygon
-        if self.npolygon:
-            assert maxfaces != 0
-            self.faces = Field(C.int(npolygon)[maxfaces])
-            self.nfaces = Field(C.int[None])
-            self.maxfaces = maxfaces
-        else:
-            self.faces = None
+
+        assert maxfaces != 0
+        self.faces = Field(C.int(npolygon)[maxfaces])
+        self.nfaces = Field(C.int[None])
+        self.maxfaces = maxfaces
 
         self.local = IMatrix()
 
-    def update_mesh(self, mesh):
-        verts = to_numpy(mesh.vertices, 'co', 3, np.float32)
-        nverts = len(mesh.vertices)
+    def update_mesh(self, verts, faces):
+        nverts = verts.shape[0] // 3
         if nverts > self.maxverts:
             raise ValueError(f'Please increase maxverts: {nverts} > {self.maxverts}')
         self._update(self.verts, self.nverts, verts, nverts, 3)
 
-        if self.npolygon:
-            if self.npolygon == 2:
-                faces = to_numpy(mesh.edges, 'vertices', 2, np.int32)
-                nfaces = len(mesh.edges)
-            else:
-                faces = to_numpy(mesh.polygons, 'vertices', self.npolygon, np.int32)
-                nfaces = len(mesh.polygons)
-            if nfaces > self.maxfaces:
-                raise ValueError(f'Please increase maxfaces: {nfaces} > {self.maxfaces}')
-            self._update(self.faces, self.nfaces, faces, nfaces, self.npolygon)
+        nfaces = faces.shape[0] // self.npolygon
+        if nfaces > self.maxfaces:
+            raise ValueError(f'Please increase maxfaces: {nfaces} > {self.maxfaces}')
+        self._update(self.faces, self.nfaces, faces, nfaces, self.npolygon)
 
     def run(self):
         object = bpy.data.objects[self.name]
+
         if self.modifiers:
             depsgraph = bpy.context.evaluated_depsgraph_get()
+
+            import bmesh
+            bm = bmesh.new()
             object_eval = object.evaluated_get(depsgraph)
-            mesh = bpy.data.meshes.new_from_object(object_eval)
+            bm.from_object(object_eval, depsgraph)
+            bmesh.ops.triangulate(bm, faces=bm.faces)
+            verts = bmesh_verts_to_numpy(bm)
+            faces = bmesh_faces_to_numpy(bm)
+            assert faces.shape[1] == self.npolygon, f'npolygon should be {faces.shape[1]}'
+            verts = verts.reshape(verts.shape[0] * verts.shape[1])
+            faces = faces.reshape(faces.shape[0] * faces.shape[1])
+
         else:
             mesh = object.data
+            verts = to_flat_numpy(mesh.vertices, 'co', 3, np.float32)
+            faces = to_flat_numpy(mesh.polygons, 'vertices', self.npolygon, np.int32)
+            #verts = verts.reshape(len(mesh.vertices), 3)
+            #faces = faces.reshape(len(mesh.vertices), self.npolygon)
 
-        self.update_mesh(mesh)
-
-        if self.modifiers:
-            bpy.data.meshes.remove(mesh)
+        self.update_mesh(verts, faces)
 
         local = np.array(object.matrix_local)
         self.local.matrix[None] = local.tolist()
@@ -214,7 +226,7 @@ class MeshSequence(IRun):
             mesh_name = f'{self.object.name}_{frame:03d}'
             verts = self.update_data()
             mesh = new_mesh(mesh_name)
-            from_numpy(mesh.vertices, 'co', verts, 3)
+            from_flat_numpy(mesh.vertices, 'co', verts, 3)
             mesh.update()
             self.cache.append(mesh_name)
 
