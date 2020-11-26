@@ -88,16 +88,14 @@ class InputMeshObject(IRun):
         self.modifiers = modifiers
 
         assert maxverts != 0
-        self.verts = Field(C.float(3)[maxverts])
-        self.nverts = Field(C.int[None])
+        self.verts = DynamicField(C.float(3)[maxverts])
         self.maxverts = maxverts
 
         assert npolygon != 0
         self.npolygon = npolygon
 
         assert maxfaces != 0
-        self.faces = Field(C.int(npolygon)[maxfaces])
-        self.nfaces = Field(C.int[None])
+        self.faces = DynamicField(C.int(npolygon)[maxfaces])
         self.maxfaces = maxfaces
 
         self.local = IMatrix()
@@ -106,12 +104,12 @@ class InputMeshObject(IRun):
         nverts = verts.shape[0] // 3
         if nverts > self.maxverts:
             raise ValueError(f'Please increase maxverts: {nverts} > {self.maxverts}')
-        self._update(self.verts, self.nverts, verts, nverts, 3)
+        self._update(self.verts, verts, nverts, 3)
 
         nfaces = faces.shape[0] // self.npolygon
         if nfaces > self.maxfaces:
             raise ValueError(f'Please increase maxfaces: {nfaces} > {self.maxfaces}')
-        self._update(self.faces, self.nfaces, faces, nfaces, self.npolygon)
+        self._update(self.faces, faces, nfaces, self.npolygon)
 
     def run(self):
         object = bpy.data.objects[self.name]
@@ -143,9 +141,9 @@ class InputMeshObject(IRun):
         self.local.matrix[None] = local.tolist()
 
     @ti.kernel
-    def _update(self, self_verts: ti.template(), self_nverts: ti.template(),
+    def _update(self, self_verts: ti.template(),
             verts: ti.ext_arr(), nverts: int, dim: ti.template()):
-        self_nverts[None] = nverts
+        self_verts.size[None] = nverts
         for i in range(nverts):
             for j in ti.static(range(dim)):
                 self_verts[i][j] = verts[i * dim + j]

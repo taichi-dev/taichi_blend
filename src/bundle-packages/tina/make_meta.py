@@ -26,13 +26,14 @@ class Meta(INode):
 
     is_taichi_class = True
 
-    def __init__(self, shape=None, dtype=None, vdims=None):
+    def __init__(self, shape=None, dtype=None, vdims=None, store=None):
         self.dtype = dtype
         self.shape = totuple(shape) if shape is not None else shape
         self.vdims = totuple(vdims) if vdims is not None else vdims
+        self.store = store
 
     def copy(self, other):
-        Meta.__init__(self, other.shape, other.dtype, other.vdims)
+        Meta.__init__(self, other.shape, other.dtype, other.vdims, other.store)
 
     def __repr__(self):
         dtype = self.dtype

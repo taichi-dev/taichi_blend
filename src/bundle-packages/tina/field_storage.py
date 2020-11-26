@@ -13,7 +13,7 @@ class Field(IField):
     def __init__(self, meta):
         assert isinstance(meta, Meta)
 
-        self.meta = meta
+        self.meta = MEdit(meta, store=self)
         self.core = self.__mkfield(meta.dtype, meta.vdims, meta.shape)
 
     @staticmethod
@@ -37,9 +37,6 @@ class Field(IField):
 
     def __repr__(self):
         return f'Field({self.meta})'
-
-    def __str__(self):
-        return str(self.core)
 
     def __getattr__(self, attr):
         return getattr(self.core, attr)

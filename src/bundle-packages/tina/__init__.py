@@ -182,8 +182,12 @@ class IField(INode):
 
     @ti.func
     def __iter__(self):
-        for I in ti.grouped(ti.ndrange(*self.meta.shape)):
-            yield I
+        if ti.static(self.meta.store is not None):
+            for I in ti.static(self.meta.store):
+                yield I
+        else:
+            for I in ti.grouped(ti.ndrange(*self.meta.shape)):
+                yield I
 
     @ti.kernel
     def _to_numpy(self, arr: ti.ext_arr()):
@@ -240,6 +244,8 @@ from .edit_meta import MEdit
 from . import specify_meta
 from . import field_storage
 from .field_storage import Field
+from . import dynamic_field
+from .dynamic_field import DynamicField
 from . import cache_field
 from . import double_buffer
 from . import bind_source
@@ -277,6 +283,6 @@ from . import render
 from .render import IMatrix
 
 
-__all__ = ['ti', 'A', 'C', 'V', 'np',
-        'IRun', 'IField', 'Meta', 'Field', 'IMatrix', 'ICall',
-        'FMeta', 'INode', 'clamp', 'bilerp', 'totuple', 'tovector']
+__all__ = ['ti', 'A', 'C', 'V', 'np', 'IRun', 'IField', 'Meta',
+        'Field', 'DynamicField', 'IMatrix', 'ICall', 'FMeta', 'INode',
+        'clamp', 'bilerp', 'totuple', 'tovector', 'to_numpy_type']
