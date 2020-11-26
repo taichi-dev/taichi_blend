@@ -29,4 +29,4 @@ class Def(IField):
         fg = min(wh[0], wh[1]) / 2
         cd = wh / 2
         uv = xy * fg + cd
-        return uv
+        return V(uv[0], uv[1], pos[2])

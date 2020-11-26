@@ -283,6 +283,6 @@ from . import render
 from .render import IMatrix
 
 
-__all__ = ['ti', 'A', 'C', 'V', 'np', 'IRun', 'IField', 'Meta',
+__all__ = ['ti', 'A', 'C', 'V', 'np', 'IRun', 'IField', 'Meta', 'MEdit',
         'Field', 'DynamicField', 'IMatrix', 'ICall', 'FMeta', 'INode',
         'clamp', 'bilerp', 'totuple', 'tovector', 'to_numpy_type']

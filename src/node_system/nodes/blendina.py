@@ -27,11 +27,19 @@ def from_flat_numpy(b, key, a, dim=None):
 
 
 def bmesh_verts_to_numpy(bm):
-    return np.array([x.co for x in bm.verts], dtype=np.float32)
+    arr = [x.co for x in bm.verts]
+    if len(arr) == 0:
+        print('Warning: no vertices!')
+        return np.zeros((0, 3), dtype=np.float32)
+    return np.array(arr, dtype=np.float32)
 
 
 def bmesh_faces_to_numpy(bm):
-    return np.array([[y.index for y in x.verts] for x in bm.faces], dtype=np.int32)
+    arr = [[y.index for y in x.verts] for x in bm.faces]
+    if len(arr) == 0:
+        print('Warning: no faces!')
+        return np.zeros((0, 3), dtype=np.int32)
+    return np.array(arr, dtype=np.int32)
 
 
 def mesh_update(mesh, verts=None, edges=None, faces=None, npoly=None):

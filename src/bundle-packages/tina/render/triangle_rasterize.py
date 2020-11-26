@@ -22,6 +22,7 @@ class TriangleRasterize(IRun, IField):
         self.pos = pos
         self.attr = attr
         self.meta = FMeta(buf)
+        self.depth = Field(MEdit(self.meta, dtype=float, vdims=[]))
         self.shader = shader
 
     @ti.func
@@ -33,8 +34,15 @@ class TriangleRasterize(IRun, IField):
         eps = ti.static(ti.get_rel_eps() * 0.2)
         screen = ti.static(V(*self.meta.shape))
 
+        for I in ti.smart(self.depth):
+            self.depth[I] = 1e6
+
         for I in ti.smart(self.pos):
-            A, B, C = self.pos[I]
+            Ap, Bp, Cp = self.pos[I]
+            A = V(Ap.x, Ap.y)
+            B = V(Bp.x, Bp.y)
+            C = V(Cp.x, Cp.y)
+
             a_A, a_B, a_C = self.attr[I]
 
             scr_norm = (A - C).cross(B - A)
@@ -54,6 +62,13 @@ class TriangleRasterize(IRun, IField):
 
                 is_inside = w_A >= -eps and w_B >= -eps and w_C >= -eps
                 if not is_inside:
+                    continue
+
+                zdep = Ap.z * w_A + Bp.z * w_B + Cp.z * w_C
+                if zdep < 1e-4:
+                    continue
+
+                if ti.atomic_min(self.depth[X], zdep) < zdep:
                     continue
 
                 color = self.shader.call(a_A * w_A + a_B * w_B + a_C * w_C)
