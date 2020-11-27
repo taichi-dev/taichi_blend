@@ -172,9 +172,35 @@ class InputObjectInfo(IRun):
         self.name = name
         self.world = IMatrix()
 
-    def run(self):
+    def _run(self):
         object = bpy.data.objects[self.name]
         self.world.from_numpy(np.array(object.matrix_world))
+
+
+@A.register
+class InputObjectLight(InputObjectInfo):
+    '''
+    Name: input_object_light
+    Category: input
+    Inputs: object:so update:t
+    Output: light:n% color:f% world:x% update:t
+    '''
+
+    def __init__(self, name, chain):
+        super().__init__(name, chain)
+
+        self.color = Field(C.float(3)[None])  # add IUniform?
+        self.light = A.make_light(self.world, self.color)
+
+        @ti.materialize_callback
+        def init_color():
+            self.color[None] = V(1, 1, 1)
+
+    def _run(self):
+        super()._run()
+
+        light = bpy.data.objects[self.name].data
+        self.color = np.array(light.color).tolist()
 
 
 @A.register
@@ -383,6 +409,30 @@ def FVPack3(x, y, z):
     '''
 
     return A.pack_vector(x, y, z)
+
+
+@A.register
+def FConst3(x, y, z):
+    '''
+    Name: const_3d_vector
+    Category: converter
+    Inputs: x:f y:f z:f
+    Output: vector:vf
+    '''
+
+    return A.const_field(V(x, y, z))
+
+
+@A.register
+def FVUnpack(vec):
+    '''
+    Name: unpack_vector
+    Category: converter
+    Inputs: vector:vf
+    Output: x:f% y:f% z:f% w:f%
+    '''
+
+    return vec
 
 
 @A.register

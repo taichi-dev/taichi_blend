@@ -6,13 +6,16 @@ class DiffuseShader(ICall):
     '''
     Name: diffuse_shader
     Category: render
-    Inputs:
+    Inputs: light:n
     Output: shader:n
     '''
 
-    def __init__(self):
-        pass
+    def __init__(self, light):
+        assert isinstance(light, ICall)
+
+        self.light = light
 
     @ti.func
     def call(self, pos, nrm):
-        return max(0, nrm.dot(V(1.0, 1.0, 1.0).normalized()))
+        ldir, lclr = self.light.call(pos)
+        return max(0, lclr * nrm.dot(ldir))

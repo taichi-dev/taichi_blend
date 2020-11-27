@@ -123,7 +123,11 @@ class A:
                     args.append(inputs[index])
             # print('===', cls, args)
             args = converter(*args)
-            ret = cls(*args)
+            try:
+                ret = cls(*args)
+            except Exception as e:
+                print(f'Exception while constructing node `{node_name}`!')
+                raise e
             rets = []
             for name in omap:
                 if name is None:

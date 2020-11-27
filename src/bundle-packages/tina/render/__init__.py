@@ -59,3 +59,4 @@ from . import matrix_inverse
 from . import diffuse_shader
 from . import face_vertices
 from . import clear_buffer
+from . import make_light
