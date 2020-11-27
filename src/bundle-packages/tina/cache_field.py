@@ -2,15 +2,17 @@ from . import *
 
 
 @A.register
-class Def(IField, IRun):
+class Def(IRun, IField):
     '''
     Name: cache_field
     Category: storage
-    Inputs: source:f
+    Inputs: source:f update:t
     Output: cached:cf update:t
     '''
 
-    def __init__(self, src):
+    def __init__(self, src, chain):
+        super().__init__(chain)
+
         assert isinstance(src, IField)
 
         self.src = src
@@ -18,7 +20,7 @@ class Def(IField, IRun):
         self.buf = Field(self.meta)
 
     @ti.kernel
-    def run(self):
+    def _run(self):
         for I in ti.static(self.src):
             self.buf[I] = self.src[I]
 

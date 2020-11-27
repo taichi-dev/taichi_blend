@@ -89,7 +89,7 @@ class InputMeshObject(IRun):
     Name: input_mesh_object
     Category: input
     Inputs: object:so maxverts:i maxfaces:i npolygon:i use_raw:b is_dynamic:b
-    Output: verts:cf% faces:cf% update:t local:x%
+    Output: verts:cf% world_verts:cf% faces:cf% update:t local:x%
     '''
     def __init__(self, name, maxverts, maxfaces, npolygon,
             use_raw=False, is_dynamic=False):
@@ -109,6 +109,7 @@ class InputMeshObject(IRun):
         self.maxfaces = maxfaces
 
         self.local = IMatrix()
+        self.world_verts = A.apply_transform(self.verts, self.local)
 
     def update_mesh(self, verts, faces):
         nverts = verts.shape[0] // 3
