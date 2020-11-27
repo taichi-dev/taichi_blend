@@ -84,18 +84,16 @@ def export_vfield(f: ti.template(), out: ti.ext_arr(), dim: ti.template()):
 
 
 @A.register
-class InputMeshObject(IRun):
+class InputObjectMesh(IRun):
     '''
-    Name: input_mesh_object
+    Name: input_object_mesh
     Category: input
-    Inputs: object:so maxverts:i maxfaces:i npolygon:i use_raw:b is_dynamic:b
-    Output: verts:cf% world_verts:cf% faces:cf% update:t local:x%
+    Inputs: object:so maxverts:i maxfaces:i npolygon:i use_raw:b
+    Output: verts:cf% faces:cf% update:t
     '''
-    def __init__(self, name, maxverts, maxfaces, npolygon,
-            use_raw=False, is_dynamic=False):
+    def __init__(self, name, maxverts, maxfaces, npolygon, use_raw=False):
         self.name = name
         self.use_raw = use_raw
-        self.mesh_invalidate = 2 if is_dynamic else 1
 
         assert maxverts != 0
         self.verts = DynamicField(C.float(3)[maxverts])
@@ -107,9 +105,6 @@ class InputMeshObject(IRun):
         assert maxfaces != 0
         self.faces = DynamicField(C.int(npolygon)[maxfaces])
         self.maxfaces = maxfaces
-
-        self.local = IMatrix()
-        self.world_verts = A.apply_transform(self.verts, self.local)
 
     def update_mesh(self, verts, faces):
         nverts = verts.shape[0] // 3
@@ -125,33 +120,28 @@ class InputMeshObject(IRun):
     def run(self):
         object = bpy.data.objects[self.name]
 
-        if self.mesh_invalidate:
-            if self.use_raw:
-                mesh = object.data
-                verts = to_flat_numpy(mesh.vertices, 'co', 3, np.float32)
-                faces = to_flat_numpy(mesh.polygons, 'vertices', self.npolygon, np.int32)
-                #verts = verts.reshape(len(mesh.vertices), 3)
-                #faces = faces.reshape(len(mesh.vertices), self.npolygon)
+        if self.use_raw:
+            mesh = object.data
+            verts = to_flat_numpy(mesh.vertices, 'co', 3, np.float32)
+            faces = to_flat_numpy(mesh.polygons, 'vertices', self.npolygon, np.int32)
+            #verts = verts.reshape(len(mesh.vertices), 3)
+            #faces = faces.reshape(len(mesh.vertices), self.npolygon)
 
-            else:
-                depsgraph = bpy.context.evaluated_depsgraph_get()
+        else:
+            depsgraph = bpy.context.evaluated_depsgraph_get()
 
-                import bmesh
-                bm = bmesh.new()
-                object_eval = object.evaluated_get(depsgraph)
-                bm.from_object(object_eval, depsgraph)
-                bmesh.ops.triangulate(bm, faces=bm.faces)
-                verts = bmesh_verts_to_numpy(bm)
-                faces = bmesh_faces_to_numpy(bm)
-                assert faces.shape[1] == self.npolygon, f'npolygon should be {faces.shape[1]}'
-                verts = verts.reshape(verts.shape[0] * verts.shape[1])
-                faces = faces.reshape(faces.shape[0] * faces.shape[1])
+            import bmesh
+            bm = bmesh.new()
+            object_eval = object.evaluated_get(depsgraph)
+            bm.from_object(object_eval, depsgraph)
+            bmesh.ops.triangulate(bm, faces=bm.faces)
+            verts = bmesh_verts_to_numpy(bm)
+            faces = bmesh_faces_to_numpy(bm)
+            assert faces.shape[1] == self.npolygon, f'npolygon should be {faces.shape[1]}'
+            verts = verts.reshape(verts.shape[0] * verts.shape[1])
+            faces = faces.reshape(faces.shape[0] * faces.shape[1])
 
-            self.update_mesh(verts, faces)
-            if self.mesh_invalidate == 1:
-                self.mesh_invalidate = 0
-
-        self.local.from_numpy(np.array(object.matrix_local))
+        self.update_mesh(verts, faces)
 
     @ti.kernel
     def _update(self, self_verts: ti.template(),
@@ -165,6 +155,26 @@ class InputMeshObject(IRun):
     def __iter__(self):
         for I in ti.grouped(ti.ndrange(self.nverts[None])):
             yield I
+
+
+@A.register
+class InputObjectInfo(IRun):
+    '''
+    Name: input_object_info
+    Category: input
+    Inputs: object:so update:t
+    Output: world:x% update:t
+    '''
+
+    def __init__(self, name, chain):
+        super().__init__(chain)
+
+        self.name = name
+        self.world = IMatrix()
+
+    def run(self):
+        object = bpy.data.objects[self.name]
+        self.world.from_numpy(np.array(object.matrix_world))
 
 
 @A.register
@@ -315,13 +325,12 @@ class RenderOutput(INode):
             out[base + 2] = b
             out[base + 3] = 1
 
-# TODO: fix CurrentFrame/DiskFrameCache for MeshSequence on skip frame
-
+# TODO: fix CurrentFrameId/DiskFrameCache for MeshSequence on skip frame
 @A.register
-class CurrentFrame(A.uniform_field, IRun):
+class CurrentFrameId(A.uniform_field, IRun):
     '''
-    Name: current_frame
-    Category: parameter
+    Name: current_frame_id
+    Category: blender
     Inputs:
     Output: frame:f update:t
     '''

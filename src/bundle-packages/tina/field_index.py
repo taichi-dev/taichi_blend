@@ -5,7 +5,7 @@ from . import *
 class Def(IField):
     '''
     Name: field_index
-    Category: parameter
+    Category: sampler
     Inputs:
     Output: index:vf
     '''

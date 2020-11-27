@@ -5,7 +5,7 @@ from . import *
 class Def(IField):
     '''
     Name: uniform_field
-    Category: parameter
+    Category: sampler
     Inputs: value:f
     Output: field:f
     '''

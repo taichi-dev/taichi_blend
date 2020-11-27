@@ -5,7 +5,7 @@ from . import *
 class Def(IField):
     '''
     Name: const_field
-    Category: parameter
+    Category: sampler
     Inputs: value:c
     Output: field:f
     '''

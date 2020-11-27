@@ -2,21 +2,23 @@ from . import *
 
 
 @A.register
-class SimpleShader(ICall):
+class TriangleInterp(ICall):
     '''
-    Name: simple_shader
+    Name: triangle_interp
     Category: render
-    Inputs: fapos:f fanrm:f pers:x
-    Output: shader:n
+    Inputs: fapos:f fanrm:f pers:x shader:n
+    Output: interp:n
     '''
 
-    def __init__(self, pos, nrm, pers):
+    def __init__(self, pos, nrm, pers, shader):
         assert isinstance(pos, IField)
         assert isinstance(nrm, IField)
+        assert isinstance(shader, ICall)
 
         self.pos = pos
         self.nrm = nrm
         self.pers = pers
+        self.shader = shader
 
     @ti.func
     def call(self, I, wei):
@@ -29,4 +31,4 @@ class SimpleShader(ICall):
         nrm = wei.x * nrma + wei.y * nrmb + wei.z * nrmc
         nrm = nrm.normalized()
 
-        return max(0, nrm.dot(V(1.0, 1.0, 1.0).normalized()))
+        return self.shader.call(pos, nrm)

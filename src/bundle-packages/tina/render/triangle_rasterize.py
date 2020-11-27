@@ -5,22 +5,22 @@ class TriangleRasterize(IRun, IField):
     '''
     Name: triangle_rasterize
     Category: render
-    Inputs: buffer:cf faverts:f shader:n update:t
+    Inputs: buffer:cf faverts:f interp:n update:t
     Output: buffer:cf update:t
     '''
 
-    def __init__(self, buf, pos, shader, chain):
+    def __init__(self, buf, pos, interp, chain):
         super().__init__(chain)
 
         assert isinstance(buf, IField)
         assert isinstance(pos, IField)
-        assert isinstance(shader, ICall)
+        assert isinstance(interp, ICall)
 
         self.buf = buf
         self.pos = pos
         self.meta = FMeta(buf)
         self.depth = Field(MEdit(self.meta, dtype=float, vdims=[]))
-        self.shader = shader
+        self.interp = interp
 
     @ti.func
     def _subscript(self, I):
@@ -63,5 +63,5 @@ class TriangleRasterize(IRun, IField):
                 if ti.atomic_min(self.depth[X], zdep) < zdep:
                     continue
 
-                color = self.shader.call(I, V(w_A, w_B, w_C))
+                color = self.interp.call(I, V(w_A, w_B, w_C))
                 self.buf[X] = color
