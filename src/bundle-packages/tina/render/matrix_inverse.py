@@ -10,13 +10,17 @@ class Def(IMatrix):
     Output: inverse:x
     '''
 
-    def __init__(self, mat):
-        assert isinstance(mat, IMatrix)
+    def __init__(self, src):
+        assert isinstance(src, IMatrix)
 
-        self.mat = mat
+        self.src = src
 
     @ti.func
     def get_matrix(self):
-        return self.mat.get_matrix().inverse()
+        return self.src.get_inv_matrix()
+
+    @ti.func
+    def get_inv_matrix(self):
+        return self.src.get_matrix()
 
 

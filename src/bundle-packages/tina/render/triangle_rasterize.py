@@ -60,9 +60,6 @@ class TriangleRasterize(IRun, IField):
                     continue
 
                 zdep = Ap.z * w_A + Bp.z * w_B + Cp.z * w_C
-                if zdep < 1e-4:
-                    continue
-
                 if ti.atomic_min(self.depth[X], zdep) < zdep:
                     continue
 

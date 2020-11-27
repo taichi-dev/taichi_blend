@@ -88,12 +88,14 @@ class InputMeshObject(IRun):
     '''
     Name: input_mesh_object
     Category: input
-    Inputs: object:so maxverts:i npolygon:i maxfaces:i use_raw:b
+    Inputs: object:so maxverts:i maxfaces:i npolygon:i use_raw:b is_dynamic:b
     Output: verts:cf% faces:cf% update:t local:x%
     '''
-    def __init__(self, name, maxverts, npolygon, maxfaces, use_raw=False):
+    def __init__(self, name, maxverts, maxfaces, npolygon,
+            use_raw=False, is_dynamic=False):
         self.name = name
         self.use_raw = use_raw
+        self.mesh_invalidate = 2 if is_dynamic else 1
 
         assert maxverts != 0
         self.verts = DynamicField(C.float(3)[maxverts])
@@ -122,31 +124,33 @@ class InputMeshObject(IRun):
     def run(self):
         object = bpy.data.objects[self.name]
 
-        if self.use_raw:
-            mesh = object.data
-            verts = to_flat_numpy(mesh.vertices, 'co', 3, np.float32)
-            faces = to_flat_numpy(mesh.polygons, 'vertices', self.npolygon, np.int32)
-            #verts = verts.reshape(len(mesh.vertices), 3)
-            #faces = faces.reshape(len(mesh.vertices), self.npolygon)
+        if self.mesh_invalidate:
+            if self.use_raw:
+                mesh = object.data
+                verts = to_flat_numpy(mesh.vertices, 'co', 3, np.float32)
+                faces = to_flat_numpy(mesh.polygons, 'vertices', self.npolygon, np.int32)
+                #verts = verts.reshape(len(mesh.vertices), 3)
+                #faces = faces.reshape(len(mesh.vertices), self.npolygon)
 
-        else:
-            depsgraph = bpy.context.evaluated_depsgraph_get()
+            else:
+                depsgraph = bpy.context.evaluated_depsgraph_get()
 
-            import bmesh
-            bm = bmesh.new()
-            object_eval = object.evaluated_get(depsgraph)
-            bm.from_object(object_eval, depsgraph)
-            bmesh.ops.triangulate(bm, faces=bm.faces)
-            verts = bmesh_verts_to_numpy(bm)
-            faces = bmesh_faces_to_numpy(bm)
-            assert faces.shape[1] == self.npolygon, f'npolygon should be {faces.shape[1]}'
-            verts = verts.reshape(verts.shape[0] * verts.shape[1])
-            faces = faces.reshape(faces.shape[0] * faces.shape[1])
+                import bmesh
+                bm = bmesh.new()
+                object_eval = object.evaluated_get(depsgraph)
+                bm.from_object(object_eval, depsgraph)
+                bmesh.ops.triangulate(bm, faces=bm.faces)
+                verts = bmesh_verts_to_numpy(bm)
+                faces = bmesh_faces_to_numpy(bm)
+                assert faces.shape[1] == self.npolygon, f'npolygon should be {faces.shape[1]}'
+                verts = verts.reshape(verts.shape[0] * verts.shape[1])
+                faces = faces.reshape(faces.shape[0] * faces.shape[1])
 
-        self.update_mesh(verts, faces)
+            self.update_mesh(verts, faces)
+            if self.mesh_invalidate == 1:
+                self.mesh_invalidate = 0
 
-        local = np.array(object.matrix_local)
-        self.local.matrix[None] = local.tolist()
+        self.local.from_numpy(np.array(object.matrix_local))
 
     @ti.kernel
     def _update(self, self_verts: ti.template(),
@@ -247,24 +251,15 @@ class RenderInputs(INode):
     Name: render_inputs
     Category: input
     Inputs:
-    Output: pers:x% inv_pers:x% view:x% inv_view:x%
+    Output: pers:x% view:x%
     '''
     def __init__(self):
         self.pers = IMatrix()
-        self.inv_pers = IMatrix()
         self.view = IMatrix()
-        self.inv_view = IMatrix()
 
     def set_region_data(self, region3d):
-        pers = np.array(region3d.perspective_matrix)
-        inv_pers = np.array(region3d.perspective_matrix.inverted())
-        view = np.array(region3d.view_matrix)
-        inv_view = np.array(region3d.view_matrix.inverted())
-
-        self.pers.matrix[None] = pers.tolist()
-        self.inv_pers.matrix[None] = inv_pers.tolist()
-        self.view.matrix[None] = view.tolist()
-        self.inv_view.matrix[None] = inv_view.tolist()
+        self.pers.from_numpy(np.array(region3d.perspective_matrix))
+        self.view.from_numpy(np.array(region3d.view_matrix))
 
 
 @A.register

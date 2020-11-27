@@ -21,4 +21,7 @@ class Def(IMatrix):
     def get_matrix(self):
         return self.second.get_matrix() @ self.first.get_matrix()
 
+    @ti.func
+    def get_inv_matrix(self):
+        return self.first.get_inv_matrix() @ self.second.get_inv_matrix()
 

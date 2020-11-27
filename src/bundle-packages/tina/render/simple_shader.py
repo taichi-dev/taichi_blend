@@ -6,18 +6,17 @@ class SimpleShader(ICall):
     '''
     Name: simple_shader
     Category: render
-    Inputs: fapos:f fanrm:f pers:x inv_pers:x
+    Inputs: fapos:f fanrm:f pers:x
     Output: shader:n
     '''
 
-    def __init__(self, pos, nrm, pers, inv_pers):
+    def __init__(self, pos, nrm, pers):
         assert isinstance(pos, IField)
         assert isinstance(nrm, IField)
 
         self.pos = pos
         self.nrm = nrm
         self.pers = pers
-        self.inv_pers = inv_pers
 
     @ti.func
     def call(self, I, wei):

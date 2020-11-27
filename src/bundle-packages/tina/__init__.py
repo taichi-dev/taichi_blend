@@ -280,9 +280,9 @@ from . import canvas_visualize
 from . import static_print
 from . import physics
 from . import render
-from .render import IMatrix
+from .render import IMatrix, mapply
 
 
 __all__ = ['ti', 'A', 'C', 'V', 'np', 'IRun', 'IField', 'Meta', 'MEdit',
         'Field', 'DynamicField', 'IMatrix', 'ICall', 'FMeta', 'INode',
-        'clamp', 'bilerp', 'totuple', 'tovector', 'to_numpy_type']
+        'mapply', 'clamp', 'bilerp', 'totuple', 'tovector', 'to_numpy_type']
