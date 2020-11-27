@@ -88,12 +88,12 @@ class InputMeshObject(IRun):
     '''
     Name: input_mesh_object
     Category: input
-    Inputs: object:so maxverts:i npolygon:i maxfaces:i modifiers:b
+    Inputs: object:so maxverts:i npolygon:i maxfaces:i use_raw:b
     Output: verts:cf% faces:cf% update:t local:x%
     '''
-    def __init__(self, name, maxverts, npolygon, maxfaces, modifiers=False):
+    def __init__(self, name, maxverts, npolygon, maxfaces, use_raw=False):
         self.name = name
-        self.modifiers = modifiers
+        self.use_raw = use_raw
 
         assert maxverts != 0
         self.verts = DynamicField(C.float(3)[maxverts])
@@ -122,7 +122,14 @@ class InputMeshObject(IRun):
     def run(self):
         object = bpy.data.objects[self.name]
 
-        if self.modifiers:
+        if self.use_raw:
+            mesh = object.data
+            verts = to_flat_numpy(mesh.vertices, 'co', 3, np.float32)
+            faces = to_flat_numpy(mesh.polygons, 'vertices', self.npolygon, np.int32)
+            #verts = verts.reshape(len(mesh.vertices), 3)
+            #faces = faces.reshape(len(mesh.vertices), self.npolygon)
+
+        else:
             depsgraph = bpy.context.evaluated_depsgraph_get()
 
             import bmesh
@@ -135,13 +142,6 @@ class InputMeshObject(IRun):
             assert faces.shape[1] == self.npolygon, f'npolygon should be {faces.shape[1]}'
             verts = verts.reshape(verts.shape[0] * verts.shape[1])
             faces = faces.reshape(faces.shape[0] * faces.shape[1])
-
-        else:
-            mesh = object.data
-            verts = to_flat_numpy(mesh.vertices, 'co', 3, np.float32)
-            faces = to_flat_numpy(mesh.polygons, 'vertices', self.npolygon, np.int32)
-            #verts = verts.reshape(len(mesh.vertices), 3)
-            #faces = faces.reshape(len(mesh.vertices), self.npolygon)
 
         self.update_mesh(verts, faces)
 
