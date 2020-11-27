@@ -32,9 +32,10 @@ class IMatrix(INode):
 from . import viewport_transform
 from . import particle_rasterize
 from . import triangle_rasterize
+from . import face_flat_normal
 from . import apply_transform
-from . import matrix_inverse
 from . import matrix_multiply
+from . import matrix_inverse
 from . import face_vertices
 from . import simple_shader
 from . import clear_buffer
