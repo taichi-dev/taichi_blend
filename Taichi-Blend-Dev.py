@@ -10,7 +10,7 @@ bl_info = {
         'version': (0, 0, 0),
         'blender': (2, 81, 0),
         'location': 'Scripting module',
-        'support': 'COMMUNITY',
+        'support': 'TESTING',
         'wiki_url': 'https://github.com/taichi-dev/taichi_blend/wiki',
         'tracker_url': 'https://github.com/taichi-dev/taichi_blend/issues',
         'warning': 'Development mode',

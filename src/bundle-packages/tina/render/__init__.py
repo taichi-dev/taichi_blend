@@ -42,7 +42,7 @@ class IMatrix(INode):
 
     @ti.func
     def applies(self, pos, wei):
-        pos, posw = self.apply(pos, wei)
+        res, resw = self.apply(pos, wei)
         return res / resw
 
     @ti.func

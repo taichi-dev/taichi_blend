@@ -23,8 +23,8 @@ class SpecularShader(ICall):
     def call(self, pos, nrm):
         ldir, lclr = self.light.call(pos)
         campos = self.view.applies(V(0, 0, 0), 1)
-        viewdir = campos - pos
+        viewdir = pos - campos
 
-        half = ((viewdir - ldir) / 2).normalized()
-        strength = pow(nrm.dot(half), self.shineness[None])
+        half = ((viewdir + ldir) / 2).normalized()
+        strength = pow(max(nrm.dot(half), 0), self.shineness[None])
         return lclr * self.color[None] * strength
