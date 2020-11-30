@@ -412,15 +412,15 @@ def FVPack3(x, y, z):
 
 
 @A.register
-def FConst3(x, y, z):
+def FVConst3(coors):
     '''
-    Name: const_3d_vector
-    Category: converter
-    Inputs: x:f y:f z:f
+    Name: const_vector_field
+    Category: sampler
+    Inputs: coors:c3
     Output: vector:vf
     '''
 
-    return A.const_field(V(x, y, z))
+    return A.const_field(V(*coors))
 
 
 @A.register

@@ -41,8 +41,18 @@ class IMatrix(INode):
         return mapply(self.get_matrix(), pos, wei)
 
     @ti.func
+    def applies(self, pos, wei):
+        pos, posw = self.apply(pos, wei)
+        return res / resw
+
+    @ti.func
     def unapply(self, pos, wei):
         return mapply(self.get_inv_matrix(), pos, wei)
+
+    @ti.func
+    def unapplies(self, pos, wei):
+        res, resw = self.unapply(pos, wei)
+        return res / resw
 
     def to_numpy(self):  # use a kernel instead?
         return self.matrix[None].value.to_numpy()
@@ -55,8 +65,10 @@ from . import face_flat_normal
 from . import apply_transform
 from . import triangle_interp
 from . import matrix_multiply
+from . import specular_shader
 from . import matrix_inverse
 from . import diffuse_shader
 from . import face_vertices
 from . import clear_buffer
 from . import make_light
+from . import add_shader
