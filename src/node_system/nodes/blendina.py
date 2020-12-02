@@ -158,52 +158,6 @@ class InputObjectMesh(IRun):
 
 
 @A.register
-class InputObjectInfo(IRun):
-    '''
-    Name: input_object_info
-    Category: input
-    Inputs: object:so update:t
-    Output: world:x% update:t
-    '''
-
-    def __init__(self, name, chain):
-        super().__init__(chain)
-
-        self.name = name
-        self.world = IMatrix()
-
-    def _run(self):
-        object = bpy.data.objects[self.name]
-        self.world.from_numpy(np.array(object.matrix_world))
-
-
-@A.register
-class InputObjectLight(InputObjectInfo):
-    '''
-    Name: input_object_light
-    Category: input
-    Inputs: object:so update:t
-    Output: light:n% color:f% world:x% update:t
-    '''
-
-    def __init__(self, name, chain):
-        super().__init__(name, chain)
-
-        self.color = Field(C.float(3)[None])  # add IUniform?
-        self.light = A.make_light(self.world, self.color)
-
-        @ti.materialize_callback
-        def init_color():
-            self.color[None] = V(1, 1, 1)
-
-    def _run(self):
-        super()._run()
-
-        light = bpy.data.objects[self.name].data
-        self.color = np.array(light.color).tolist()
-
-
-@A.register
 class NewMeshObject(IRun):
     '''
     Name: new_mesh_object
@@ -281,75 +235,6 @@ class MeshSequence(IRun):
         object = bpy.data.objects[self.object.name]
         object.data = bpy.data.meshes[mesh_name]
 
-
-@A.register
-class RenderInputs(INode):
-    '''
-    Name: render_inputs
-    Category: input
-    Inputs:
-    Output: pers:x% view:x%
-    '''
-    def __init__(self):
-        self.pers = IMatrix()
-        self.view = IMatrix()
-
-    def set_region_data(self, region3d):
-        self.pers.from_numpy(np.array(region3d.perspective_matrix))
-        self.view.from_numpy(np.array(region3d.view_matrix))
-
-
-@A.register
-class RenderOutput(INode):
-    '''
-    Name: render_output
-    Category: output
-    Inputs: image:vf update:t
-    Output:
-    '''
-    def __init__(self, img, update):
-        assert isinstance(img, IField)
-        assert isinstance(update, IRun)
-
-        self.img = img
-        self.update = update
-
-    def _cook(self, color):
-        if isinstance(color, ti.Expr):
-            color = ti.Vector([color, color, color])
-        elif isinstance(color, ti.Matrix):
-            assert color.m == 1, color.m
-            if color.n == 1:
-                color = ti.Vector([color(0), color(0), color(0)])
-            elif color.n == 2:
-                color = ti.Vector([color(0), color(1), 0])
-            elif color.n in [3, 4]:
-                color = ti.Vector([color(0), color(1), color(2)])
-            else:
-                assert False, color.n
-        return color
-
-    @ti.func
-    def image_at(self, i, j, width, height):
-        ti.static_assert(len(self.img.meta.shape) == 2)
-        scale = ti.Vector(self.img.meta.shape) / ti.Vector([width, height])
-        pos = ti.Vector([i, j]) * scale
-        color = bilerp(self.img, pos)
-        return self._cook(color)
-
-    def render(self, *args):
-        self.update.run()
-        self._render(*args)
-
-    @ti.kernel
-    def _render(self, out: ti.ext_arr(), width: int, height: int):
-        for i, j in ti.ndrange(width, height):
-            r, g, b = self.image_at(i, j, width, height)
-            base = (j * width + i) * 4
-            out[base + 0] = r
-            out[base + 1] = g
-            out[base + 2] = b
-            out[base + 3] = 1
 
 # TODO: fix CurrentFrameId/DiskFrameCache for MeshSequence on skip frame
 @A.register

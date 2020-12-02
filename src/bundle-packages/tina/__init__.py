@@ -283,10 +283,8 @@ from . import null_task
 from . import canvas_visualize
 from . import static_print
 from . import physics
-from . import render
-from .render import IMatrix, mapply
 
 
 __all__ = ['ti', 'A', 'C', 'V', 'np', 'IRun', 'IField', 'Meta', 'MEdit',
-        'Field', 'DynamicField', 'IMatrix', 'ICall', 'FMeta', 'INode',
-        'mapply', 'clamp', 'bilerp', 'totuple', 'tovector', 'to_numpy_type']
+        'Field', 'DynamicField', 'ICall', 'FMeta', 'INode', 'mapply',
+        'clamp', 'bilerp', 'totuple', 'tovector', 'to_numpy_type']
