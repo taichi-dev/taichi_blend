@@ -19,8 +19,10 @@ Video tutorial series (Bilibili)
 --------------------------------
 
 - `EP0 - installation <https://www.bilibili.com/video/bv1ty4y1B75T>`_
-- `EP1 - wave of cubes <https://www.bilibili.com/video/BV15A411j7EB)>`_
-- `EP2 - water wave simulation <https://www.bilibili.com/video/BV1h54y1C7uM)>`_
+- `EP1 - wave of cubes <https://www.bilibili.com/video/BV15A411j7EB>`_
+- `EP2 - water wave simulation <https://www.bilibili.com/video/BV1h54y1C7uM>`_
+- `EP2 - simple SDF ray tracer <https://www.bilibili.com/video/BV1WZ4y1V77h>`_
+- `EP2 - physics node system <https://www.bilibili.com/video/BV1Ep4y1r78S>`_
 
 
 How to install
@@ -98,6 +100,7 @@ Included packages
 Installing this bundle (``Taichi-Blend.zip``) will allows you to use these packages:
 
 * ``numblend`` - utilities to interface Blender with NumPy and create animations `[source] <https://github.com/taichi-dev/taichi_blend/tree/master/src/bundle-packages/numblend`_
+* ``tina`` - a node system for building physics engine based on Taichi `[source] <https://github.com/taichi-dev/taichi_blend/tree/master/src/bundle-packages/tina`_
 * ``taichi`` - the Taichi programming langurage `[repo] <https://github.com/taichi-dev/taichi>`_ `[doc] <https://taichi.readthedocs.io/en/stable>`_
 * ``taichi_glsl`` - some handy helper functions for Taichi `[repo] <https://github.com/taichi-dev/taichi_glsl>`_ `[doc] <https://taichi-glsl.readthedocs.io>`_
 * ``taichi_elements`` - a high-performance MPM solver written in Taichi `[repo] <https://github.com/taichi-dev/taichi_elements>`_ `[doc] <https://taichi-elements.readthedocs.io>`_
