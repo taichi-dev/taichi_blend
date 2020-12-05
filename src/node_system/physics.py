@@ -1,7 +1,5 @@
 IsNoSys = 1
 
-from . import utils
-
 
 DARK = 0.39, 0.39, 0.39
 GRAY = 0.63, 0.63, 0.63
@@ -13,7 +11,7 @@ YELLOW = 0.78, 0.78, 0.16
 CYAN = 0.16, 0.78, 0.78
 
 
-socket_defs = {
+sockets_def = {
     'field': DARK,
     'cached_field': GRAY,
     'vector_field': BLUE,
@@ -25,15 +23,20 @@ socket_defs = {
 }
 
 
-def register_nodes(node_system):
-    from . import blendina
+def get_sockets_def(node_system):
+    return sockets_def
 
-    blendina.register()
 
-    for name, cls in blendina.A.nodes.items():
-        utils.register_node(name, cls, node_system)
+def get_nodes_def(node_system):
+    import tina.blender
+    return tina.A.nodes
+
+
+def register_callback(node_system):
+    import tina.blender
+    tina.blender.register()
 
 
 def unregister_callback(node_system):
-    from . import blendina
-    blendina.unregister()
+    import tina.blender
+    tina.blender.unregister()

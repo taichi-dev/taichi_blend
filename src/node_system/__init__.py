@@ -18,15 +18,17 @@ class TaichiBlendNodeSystem:
         self.categories = []
         self.categories_def = {}
 
-        self.socket_defs = module.socket_defs
+    def get_sockets_def(self):
+        return self.module.get_sockets_def(self)
 
-    def register_nodes(self):
-        self.module.register_nodes(self)
+    def get_nodes_def(self):
+        return self.module.get_nodes_def(self)
+
+    def register(self):
+        self.module.register_callback(self)
 
     def unregister(self):
         self.module.unregister_callback(self)
-        for node in self.nodes:
-            bpy.utils.unregister_class(node)
 
 
 modules = [
@@ -51,6 +53,7 @@ def register():
         node_systems.append(system)
 
     for node_system in node_systems:
+        node_system.register()
         for module in modules:
             module.register(node_system)
 
@@ -59,3 +62,4 @@ def unregister():
     for node_system in reversed(node_systems):
         for module in reversed(modules):
             module.unregister(node_system)
+        node_system.unregister()

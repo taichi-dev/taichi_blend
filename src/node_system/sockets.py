@@ -1,7 +1,9 @@
 import bpy
 
 
-def make_socket(node_system, name, color):
+def make_socket(node_system, name, socket_def):
+    color = socket_def  # TODO: support inline const properties
+
     class Def(bpy.types.NodeSocket):
         bl_idname = node_system.prefix + f'_{name}_socket'
 
@@ -15,8 +17,8 @@ def make_socket(node_system, name, color):
 
 
 def register(node_system):
-    for name, color in node_system.socket_defs.items():
-        socket = make_socket(node_system, name, color)
+    for name, socket_def in node_system.get_sockets_def().items():
+        socket = make_socket(node_system, name, socket_def)
         node_system.sockets.append(socket)
 
     for socket in node_system.sockets:
