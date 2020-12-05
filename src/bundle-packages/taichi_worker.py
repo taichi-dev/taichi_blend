@@ -68,7 +68,7 @@ class TaichiWorkerST:
         pass
 
 
-class TaichiWorker:
+class TaichiWorkerLOC:
     def __init__(self, __cls=TaichiWorkerMT):
         self.__cls = __cls
         self.__core = None
@@ -80,10 +80,13 @@ class TaichiWorker:
         return getattr(self.__core, attr)
 
     def __setattr__(self, attr, value):
-        if attr.startswith('_TaichiWorker__'):
+        if attr.startswith('_TaichiWorkerLOC__'):
             self.__dict__[attr] = value
             return
 
         if self.__core is None:
             self.__core = self.__cls()
         setattr(self.__core, attr, value)
+
+
+TaichiWorker = TaichiWorkerMT

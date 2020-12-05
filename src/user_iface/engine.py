@@ -73,3 +73,4 @@ def register():
 def unregister():
     bpy.app.handlers.frame_change_pre.remove(frame_update_callback)
     worker.stop()
+    worker = None
