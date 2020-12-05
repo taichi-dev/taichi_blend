@@ -21,7 +21,7 @@ class TaichiWorkerMT:
         self.output = None
 
     def stop(self):
-        print('Stopping worker')
+        print('[Blend] Stopping worker')
         try:
             if self.running:
                 self.running = False
@@ -30,7 +30,7 @@ class TaichiWorkerMT:
             print(e)
 
     def main(self):
-        print('Worker started')
+        print('[Blend] Worker started')
         while self.running:
             try:
                 func, resptr = self.q.get(block=True, timeout=1)
@@ -67,7 +67,7 @@ class TaichiWorker:
             func(self)
         except Exception:
             msg = traceback.format_exc()
-            print('Exception while running task:\n' + msg)
+            print('[Blend] Exception while running task:\n' + msg)
             return [msg, None]
         return [None, None]
 

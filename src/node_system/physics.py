@@ -16,9 +16,9 @@ sockets_def = {
     'cached_field': GRAY,
     'vector_field': BLUE,
     'callable': GREEN,
-    'matrix': MAGENTA,
     'task': RED,
     'meta': YELLOW,
+    'matrix': MAGENTA,
     'any': CYAN,
 }
 

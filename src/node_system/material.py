@@ -12,14 +12,11 @@ CYAN = 0.16, 0.78, 0.78
 
 
 sockets_def = {
-    'field': DARK,
-    'cached_field': GRAY,
-    'vector_field': BLUE,
-    'callable': GREEN,
-    'matrix': MAGENTA,
-    'task': RED,
-    'meta': YELLOW,
-    'any': CYAN,
+    'scalar': GRAY,
+    'vector': BLUE,
+    'color': YELLOW,
+    'material': GREEN,
+    'any': DARK,
 }
 
 

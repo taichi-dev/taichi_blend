@@ -145,6 +145,7 @@ def get_node_table(node_group):
                 options.append(item)
             for name, socket in node.inputs.items():
                 link_node = None
+                link_socket = 0
                 if len(socket.links):
                     link_node = socket.links[0].from_node
                     link_socket = socket.links[0].from_socket
