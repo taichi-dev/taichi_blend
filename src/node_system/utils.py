@@ -11,7 +11,7 @@ option_types = {
     'vec_int_3': bpy.props.IntVectorProperty,
     'vec_float_2': bpy.props.FloatVectorProperty,
     'vec_float_3': bpy.props.FloatVectorProperty,
-    'search_object': bpy.props.StringProperty
+    'search_object': bpy.props.StringProperty,
 }
 
 
@@ -20,6 +20,10 @@ def get_words(string):
     for word in string.split('_'):
         words.append(word.capitalize())
     return words
+
+
+def register_socket(socket_system_name, socket_def, node_system):
+    pass
 
 
 def register_node(node_system_name, node_def, node_system):

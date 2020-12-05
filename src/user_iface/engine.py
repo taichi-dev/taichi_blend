@@ -5,7 +5,7 @@ import traceback
 import numpy as np
 import time
 
-from ..node_system.nodes import utils
+from ..node_system import utils
 
 
 class TaichiWorkerMT:

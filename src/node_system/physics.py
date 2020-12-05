@@ -1,5 +1,7 @@
 IsNoSys = 1
 
+from . import utils
+
 
 DARK = 0.39, 0.39, 0.39
 GRAY = 0.63, 0.63, 0.63
@@ -21,3 +23,17 @@ socket_defs = {
     'meta': YELLOW,
     'any': CYAN,
 }
+
+
+def register_nodes(node_system):
+    from . import blendina
+
+    blendina.register()
+
+    for name, cls in blendina.A.nodes.items():
+        utils.register_node(name, cls, node_system)
+
+
+def unregister_callback(node_system):
+    from . import blendina
+    blendina.unregister()

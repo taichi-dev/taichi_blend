@@ -10,6 +10,7 @@ class TaichiBlendNodeSystem:
         self.cap_prefix = 'TaichiBlend{}'.format(name.capitalize())
         self.window_icon = name.upper()
         self.window_label = 'Taichi Blend {}'.format(name.capitalize())
+        self.module = module
 
         self.tree = None
         self.nodes = []
@@ -18,6 +19,14 @@ class TaichiBlendNodeSystem:
         self.categories_def = {}
 
         self.socket_defs = module.socket_defs
+
+    def register_nodes(self):
+        self.module.register_nodes(self)
+
+    def unregister(self):
+        self.module.unregister_callback(self)
+        for node in self.nodes:
+            bpy.utils.unregister_class(node)
 
 
 modules = [
