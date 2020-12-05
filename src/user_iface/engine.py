@@ -1,75 +1,8 @@
 import bpy
-import queue
-import threading
-import traceback
+from taichi_worker import TaichiWorker
 import numpy as np
-import time
 
 from ..node_system import utils
-
-
-class TaichiWorkerMT:
-    def __init__(self):
-        self.q = queue.Queue(maxsize=4)
-        self.running = True
-
-        self.t = threading.Thread(target=self.main)
-        self.t.daemon = True
-        self.t.start()
-
-    def stop(self):
-        print('[Blend] Stopping worker')
-        try:
-            if self.running:
-                self.running = False
-                self.q.put((lambda self: None, [None, None]), block=False)
-        except Exception as e:
-            print(e)
-
-    def main(self):
-        print('[Blend] Worker started')
-        while self.running:
-            try:
-                func, resptr = self.q.get(block=True, timeout=1)
-            except queue.Empty:
-                continue
-
-            try:
-                func(self)
-            except Exception:
-                msg = traceback.format_exc()
-                print('Exception while running task:\n' + msg)
-                resptr[0] = msg
-
-            self.q.task_done()
-
-    def launch(self, func):
-        resptr = [None, None]
-        self.q.put((func, resptr), block=True, timeout=None)
-        return resptr
-
-    def wait_done(self):
-        self.q.join()
-
-
-class TaichiWorker:
-    def __init__(self):
-        pass
-
-    def stop(self):
-        pass
-
-    def launch(self, func):
-        try:
-            func(self)
-        except Exception:
-            msg = traceback.format_exc()
-            print('[Blend] Exception while running task:\n' + msg)
-            return [msg, None]
-        return [None, None]
-
-    def wait_done(self):
-        pass
 
 
 def taichi_init():

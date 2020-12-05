@@ -21,8 +21,10 @@ bl_info = {
 #repo_path = 'C:/Users/Administrator/taichi_blend'
 repo_path = '/home/bate/Develop/blender_taichi'
 src_path = os.path.join(repo_path, 'src/__init__.py')
+bundle_path = os.path.join(repo_path, 'src/bundle-packages')
 build_path = os.path.join(repo_path, 'build/Taichi-Blend/bundle-packages')
 assert os.path.exists(src_path), f'{src_path} does not exist!'
+assert os.path.exists(bundle_path), f'{bundle_path} does not exist!'
 assert os.path.exists(build_path), f'{build_path} does not exist!'
 
 
@@ -32,6 +34,8 @@ def register():
     print('Taichi-Blend repo at', repo_path)
     if build_path not in sys.path:
         sys.path.insert(0, build_path)
+    if bundle_path not in sys.path:
+        sys.path.insert(0, bundle_path)
 
     global taichi_blend
     taichi_blend = imp.load_source('Taichi-Blend', src_path)
@@ -41,6 +45,8 @@ def register():
 def unregister():
     if build_path in sys.path:
         sys.path.remove(build_path)
+    if bundle_path in sys.path:
+        sys.path.remove(bundle_path)
 
     global taichi_blend
     taichi_blend.unregister()
