@@ -28,15 +28,15 @@ def get_sockets_def(node_system):
 
 
 def get_nodes_def(node_system):
-    import tina.blender
-    return tina.A.nodes
+    import melt.blender
+    return melt.A.nodes
 
 
 def register_callback(node_system):
-    import tina.blender
-    tina.blender.register()
+    import melt.blender
+    melt.blender.register()
 
 
 def unregister_callback(node_system):
-    import tina.blender
-    tina.blender.unregister()
+    import melt.blender
+    melt.blender.unregister()

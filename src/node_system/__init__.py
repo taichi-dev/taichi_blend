@@ -9,7 +9,7 @@ class TaichiBlendNodeSystem:
         self.prefix = 'taichi_blend_{}'.format(name)
         self.cap_prefix = 'TaichiBlend{}'.format(name.capitalize())
         self.window_icon = name.upper()
-        self.window_label = 'Taichi Blend {}'.format(name.capitalize())
+        self.window_label = 'Taichi {} Nodes'.format(name.capitalize())
         self.module = module
 
         self.tree = None

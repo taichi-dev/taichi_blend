@@ -1,5 +1,5 @@
-import numpy as np
-from tina import *
+from . import *
+
 import bpy
 
 
