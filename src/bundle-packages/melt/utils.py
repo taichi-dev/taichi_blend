@@ -2,18 +2,22 @@ import taichi as ti
 import numpy as np
 
 
-setattr(ti, 'static', lambda x, *xs: [x] + list(xs) if xs else x) or setattr(
+hasattr(ti, '_melthacked') or setattr(ti, '_melthacked', 1) or setattr(ti,
+        'static', lambda x, *xs: [x] + list(xs) if xs else x) or setattr(
         ti.Matrix, 'element_wise_writeback_binary', (lambda f: lambda x, y, z:
         (y.__name__ != 'assign' or not setattr(y, '__name__', '_assign'))
         and f(x, y, z))(ti.Matrix.element_wise_writeback_binary)) or setattr(
         ti.Matrix, 'is_global', (lambda f: lambda x: len(x) and f(x))(
-        ti.Matrix.is_global))
+        ti.Matrix.is_global)) or print('[Melt] Taichi properties hacked')
 
-
-ti.smart = lambda x: x
 
 @eval('lambda x: x()')
 def _():
+    if hasattr(ti, 'smart'):
+        return
+
+    ti.smart = lambda x: x
+
     import copy, ast
     from taichi.lang.transformer import ASTTransformerBase, ASTTransformerPreprocess
 

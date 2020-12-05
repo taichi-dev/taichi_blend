@@ -6,8 +6,7 @@ class INode:
     pass
 
 
-@eval('lambda x: x()')
-class A:
+class NodeSystem:
     def __init__(self):
         self.nodes = {}
 
@@ -19,6 +18,9 @@ class A:
     def unregister(self, name):
         if name in self.nodes:
             del self.nodes[name]
+
+    def __len__(self):
+        return len(self.nodes)
 
     def register(self, cls):
         docs = cls.__doc__.strip().splitlines()
@@ -142,12 +144,13 @@ class A:
         setattr(Def, 'original', cls)
 
         self.nodes[node_name] = Def
-        self.register_callback(node_name, Def)
 
         return cls
 
-    def register_callback(self, name, cls):
-        pass
+
+A = NodeSystem()
+
+print('[Melt] Start loading node system...')
 
 
 from . import make_meta
@@ -283,6 +286,9 @@ from . import null_task
 from . import canvas_visualize
 from . import static_print
 from . import physics
+
+
+print(f'[Melt] Node system loaded: {len(A)} nodes')
 
 
 __all__ = ['ti', 'A', 'C', 'V', 'np', 'IRun', 'IField', 'Meta', 'MEdit',
