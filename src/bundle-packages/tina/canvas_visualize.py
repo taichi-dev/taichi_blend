@@ -5,7 +5,7 @@ from . import *
 class Def(IRun):
     '''
     Name: canvas_visualize
-    Category: render
+    Category: misc
     Inputs: image:vf update:t res:i2
     Output: task:t
     '''

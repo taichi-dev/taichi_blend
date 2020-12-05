@@ -94,26 +94,6 @@ def taichi_init():
     return table
 
 
-def render_main(width, height, region3d):
-    pixels = np.empty(width * height * 4, dtype=np.float32)
-
-    @worker.launch
-    def result(self):
-        assert self.table is not None, 'Please APPLY the program first'
-        if 'Render Inputs' in self.table:
-            inputs = self.table['Render Inputs']
-            inputs.set_region_data(region3d)
-        if 'Render Output' in self.table:
-            output = self.table['Render Output']
-            output.render(pixels, width, height)
-        else:
-            raise ValueError('No render output node!')
-
-    worker.wait_done()
-
-    return pixels
-
-
 def apply_main(ui):
     @worker.launch
     def result(self):

@@ -286,5 +286,5 @@ from . import physics
 
 
 __all__ = ['ti', 'A', 'C', 'V', 'np', 'IRun', 'IField', 'Meta', 'MEdit',
-        'Field', 'DynamicField', 'ICall', 'FMeta', 'INode', 'mapply',
-        'clamp', 'bilerp', 'totuple', 'tovector', 'to_numpy_type']
+        'Field', 'DynamicField', 'ICall', 'FMeta', 'INode', 'clamp',
+        'bilerp', 'totuple', 'tovector', 'to_numpy_type']
