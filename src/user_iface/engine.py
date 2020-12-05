@@ -17,9 +17,6 @@ class TaichiWorkerMT:
         self.t.daemon = True
         self.t.start()
 
-        self.table = None
-        self.output = None
-
     def stop(self):
         print('[Blend] Stopping worker')
         try:
@@ -135,6 +132,8 @@ worker = None
 def register():
     global worker
     worker = TaichiWorker()
+    worker.table = None
+    worker.output = None
     bpy.app.handlers.frame_change_pre.append(frame_update_callback)
 
 
