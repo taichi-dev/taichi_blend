@@ -5,12 +5,14 @@ from . import base
 
 
 def register(node_system):
+    node_system.base_category = base.make_base_category(node_system)
+
     for category_system_name, nodes_ids in node_system.categories_def.items():
         items = []
         for node_id in nodes_ids:
             items.append(nodeitems_utils.NodeItem(node_id))
-        category_id = 'taichi_blend_{}_node_category'.format(category_system_name)
-        category = base.TaichiBlendNodeCategory(
+        category_id = node_system.prefix + '_{}_node_category'.format(category_system_name)
+        category = node_system.base_category(
             category_id,
             category_system_name.capitalize(),
             items=items

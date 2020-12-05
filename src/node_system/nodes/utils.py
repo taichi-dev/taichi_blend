@@ -1,7 +1,5 @@
 import bpy
 
-from . import base
-
 
 option_types = {
     'int': bpy.props.IntProperty,
@@ -27,10 +25,10 @@ def get_words(string):
 def register_node(node_system_name, node_def, node_system):
     node_name_words = get_words(node_system_name)
     node_name = ' '.join(node_name_words)
-    node_id = 'TaichiBlend{}Node'.format(''.join(node_name_words))
+    node_id = node_system.cap_prefix + '{}Node'.format(''.join(node_name_words))
     attributes = {}
     attributes['ns_wrapped'] = getattr(node_def, 'wrapped', None)
-    attributes['bl_idname'] = 'taichi_blend_{}_node'.format(node_system_name)
+    attributes['bl_idname'] = node_system.prefix + '_{}_node'.format(node_system_name)
     attributes['bl_label'] = node_name
     inputs = []
     outputs = []
@@ -55,7 +53,7 @@ def register_node(node_system_name, node_def, node_system):
 
     def create_sockets(sockets_def, sockets):
         for system_name, socket_type in sockets_def:
-            socket_id = 'taichi_blend_{}_socket'.format(socket_type)
+            socket_id = node_system.prefix + '_{}_socket'.format(socket_type)
             name_words = get_words(system_name)
             name = ' '.join(name_words)
             socket = sockets.new(socket_id, name)
@@ -111,7 +109,7 @@ def register_node(node_system_name, node_def, node_system):
                 row.prop(self, attribute, text='')
 
     attributes['draw_buttons'] = draw_buttons
-    node_class = type(node_id, (base.TaichiBlendBaseNode, ), attributes)
+    node_class = type(node_id, (node_system.base_node, ), attributes)
     node_class.__annotations__ = props
     bpy.utils.register_class(node_class)
     node_system.nodes.append(node_class)

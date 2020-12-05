@@ -1,9 +1,9 @@
 import bpy
 
 
-def make_socket(name, color):
+def make_socket(node_system, name, color):
     class Def(bpy.types.NodeSocket):
-        bl_idname = f'taichi_blend_{name}_socket'
+        bl_idname = node_system.prefix + f'_{name}_socket'
 
         def draw(self, context, layout, node, text):
             layout.label(text=text)
@@ -14,33 +14,15 @@ def make_socket(name, color):
     return Def
 
 
-DARK = 0.39, 0.39, 0.39
-GRAY = 0.63, 0.63, 0.63
-BLUE = 0.39, 0.39, 0.78
-GREEN = 0.39, 0.78, 0.39
-MAGENTA = 0.78, 0.16, 0.78
-RED = 0.78, 0.39, 0.39
-YELLOW = 0.78, 0.78, 0.16
-CYAN = 0.16, 0.78, 0.78
-
-sockets = {
-    'field': DARK,
-    'cached_field': GRAY,
-    'vector_field': BLUE,
-    'callable': GREEN,
-    'matrix': MAGENTA,
-    'task': RED,
-    'meta': YELLOW,
-    'any': CYAN,
-}
-sockets = [make_socket(name, color) for name, color in sockets.items()]
-
-
 def register(node_system):
-    for socket in sockets:
+    for name, color in node_system.socket_defs.items():
+        socket = make_socket(node_system, name, color)
+        node_system.sockets.append(socket)
+
+    for socket in node_system.sockets:
         bpy.utils.register_class(socket)
 
 
 def unregister(node_system):
-    for socket in sockets:
+    for socket in node_system.sockets:
         bpy.utils.unregister_class(socket)
