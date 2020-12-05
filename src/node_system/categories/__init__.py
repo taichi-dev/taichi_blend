@@ -1,4 +1,4 @@
-import os, importlib
+import os
 import nodeitems_utils
 
 from . import base

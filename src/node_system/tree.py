@@ -1,27 +1,22 @@
 import bpy
 
 
-class TaichiBlendNodeTree(bpy.types.NodeTree):
-    bl_idname = 'taichi_blend_node_tree'
-    bl_label = 'Taichi Blend'
-    bl_icon = 'PHYSICS'
+def make_node_tree_class(node_system):
+    class TaichiBlendNodeTree(bpy.types.NodeTree):
+        bl_idname = node_system.prefix + '_node_tree'
+        bl_label = node_system.window_label
+        bl_icon = node_system.window_icon
 
-    @classmethod
-    def poll(cls, context):
-        return True
+        @classmethod
+        def poll(cls, context):
+            return True
+
+    return TaichiBlendNodeTree
 
 
 def register(node_system):
-    '''
-    global pcoll
-    import os, bpy.utils.previews
-    pcoll = bpy.utils.previews.new()
-    logo_path = os.path.join(os.path.dirname(__file__), 'taichi_logo.png')
-    pcoll.load('taichi_logo', logo_path, 'IMAGE')
-    TaichiBlendNodeTree.bl_icon = pcoll['taichi_logo'].icon_id
-    '''
 
-    node_system.tree = TaichiBlendNodeTree
+    node_system.tree = make_node_tree_class(node_system)
     bpy.utils.register_class(node_system.tree)
 
 

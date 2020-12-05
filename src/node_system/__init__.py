@@ -7,6 +7,9 @@ class TaichiBlendNodeSystem:
     def __init__(self, name, module):
         self.name = name
         self.prefix = 'taichi_blend_{}'.format(name)
+        self.cap_prefix = 'TaichiBlend{}'.format(name.capitalize())
+        self.window_icon = name.upper()
+        self.window_label = 'Taichi Blend {}'.format(name.capitalize())
 
         self.tree = None
         self.nodes = []
