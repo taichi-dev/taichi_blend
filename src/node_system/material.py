@@ -25,7 +25,7 @@ def get_sockets_def(node_system):
 
 
 def get_nodes_def(node_system):
-    import tina
+    import tina.melty
     return tina.melty.A.nodes
 
 

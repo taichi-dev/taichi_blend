@@ -2,7 +2,7 @@ import bpy
 from taichi_worker import TaichiWorker
 import numpy as np
 
-from ..node_system import utils
+from melt.blender import get_node_table
 
 
 def taichi_init():
@@ -11,7 +11,7 @@ def taichi_init():
     ti.init(arch=getattr(ti, backend))
 
     name = bpy.context.scene.taichi_node_group
-    table = utils.get_node_table(bpy.data.node_groups[name])
+    table = get_node_table(bpy.data.node_groups[name])
 
     stdout = bpy.context.scene.taichi_stdout_text
     if stdout in bpy.data.texts:

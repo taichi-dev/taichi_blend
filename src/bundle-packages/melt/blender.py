@@ -373,3 +373,75 @@ def register():
 
 def unregister():
     pass
+
+
+def get_node_table(node_group):
+    def get_table(node_group):
+        nodes = []
+        for key, node in node_group.nodes.items():
+            inputs = []
+            options = []
+            for (opt_name, opt_type), opt_id in node.ns_options:
+                if opt_name in node:
+                    item = node[opt_name]
+                else:
+                    if opt_type == 'str' or opt_type.startswith('search_'):
+                        item = ''
+                    elif opt_type.startswith('vec_'):
+                        item = (0,) * int(opt_type.split('_')[-1])
+                    else:
+                        item = 0
+                if opt_type == 'enum':
+                    item = node.ns_option_items[opt_id][item]
+                elif opt_type.startswith('vec_'):
+                    item = tuple(item[i] for i in range(len(item)))
+                options.append(item)
+            for name, socket in node.inputs.items():
+                link_node = None
+                link_socket = 0
+                if len(socket.links):
+                    link_node = socket.links[0].from_node
+                    link_socket = socket.links[0].from_socket
+                    link_socket = list(link_node.outputs).index(link_socket)
+                    link_node = node_group.nodes.keys().index(link_node.name)
+                inputs.append((link_node, link_socket))
+            ninfo = node.ns_wrapped, node.name, tuple(inputs), tuple(options)
+            nodes.append(ninfo)
+        return nodes
+
+
+    def construct_table(nodes):
+        visited = [None for i in nodes]
+        entered = [False for i in nodes]
+
+        def dfs(i):
+            if i is None:
+                return None, [None]
+
+            assert not entered[i], i
+            if visited[i] is not None:
+                return visited[i]
+
+            entered[i] = True
+            cons, name, inputs, options = nodes[i]
+            args = []
+            for j, k in inputs:
+                ret, rets = dfs(j)
+                args.append(rets[k])
+
+            res = cons(tuple(args), options)
+            visited[i] = res
+            entered[i] = False
+            return res
+
+        for i in range(len(nodes)):
+            dfs(i)
+
+        table = {}
+        for i, ninfo in enumerate(nodes):
+            name = ninfo[1]
+            ret, rets = visited[i]
+            table[name] = ret
+        return table
+
+    return construct_table(get_table(node_group))
