@@ -1,5 +1,4 @@
 import bpy
-from taichi_worker import TaichiWorker
 import numpy as np
 
 
@@ -96,6 +95,7 @@ worker = None
 
 def register():
     global worker
+    from taichi_worker import TaichiWorker
     worker = TaichiWorker()
 
 

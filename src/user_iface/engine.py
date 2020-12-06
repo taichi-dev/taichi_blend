@@ -1,8 +1,5 @@
 import bpy
-from taichi_worker import TaichiWorker
 import numpy as np
-
-from melt.blender import get_node_table
 
 
 def taichi_init():
@@ -10,6 +7,7 @@ def taichi_init():
     backend = bpy.context.scene.taichi_use_backend.lower()
     ti.init(arch=getattr(ti, backend))
 
+    from melt.blender import get_node_table
     name = bpy.context.scene.taichi_node_group
     table = get_node_table(bpy.data.node_groups[name])
 
@@ -64,6 +62,7 @@ worker = None
 
 def register():
     global worker
+    from taichi_worker import TaichiWorker
     worker = TaichiWorker()
     worker.table = None
     worker.output = None
