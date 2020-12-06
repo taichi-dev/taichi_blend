@@ -2,7 +2,7 @@ bl_info = {
         'name': 'Taichi Blend',
         'description': 'Taichi Blender intergration',
         'author': 'Taichi Developers',
-        'version': (0, 0, 4),
+        'version': (0, 0, 5),
         'blender': (2, 81, 0),
         'location': 'Taichi Blend Window',
         'support': 'COMMUNITY',
