@@ -1,6 +1,6 @@
-from utils import *
+from .common import *
+from .advans import *
 import ezprof
-ti.init(ti.opengl)
 
 
 EPS = 1e-6
@@ -33,27 +33,6 @@ def union_intersect(ret1, ret2):
     return t, id, pos, nrm
 
 
-@ti.func
-def spherical(t, s):
-    unit = V(ti.cos(t * ti.tau), ti.sin(t * ti.tau))
-    dir = V23(ti.sqrt(1 - s**2) * unit, s)
-    return dir
-
-
-@ti.func
-def unspherical(dir):
-    t = ti.atan2(dir.y, dir.x) / ti.tau
-    return t, dir.z
-
-
-@ti.func
-def tangentspace(nrm):
-    up = V(0., 1., 0.)
-    bitan = nrm.cross(up).normalized()
-    tan = bitan.cross(nrm)
-    return ti.Matrix.cols([tan, bitan, nrm])
-
-
 @ti.data_oriented
 class BRDF:
     def __init__(self, **kwargs):
@@ -76,16 +55,6 @@ class BRDF:
         fac, odir = self.rand_odir(idir)
         clr = self.brdf(idir, odir)
         return axes @ odir, clr * fac
-
-
-@ti.func
-def expensive(x, t, k):
-    u = ti.tanh(x * k - t)
-    n1 = ti.tanh(t)
-    n2 = ti.tanh(k - t)
-    pdf = (1 - u**2) / (n1 + n2) * k
-    cdf = (u + n1) / (n2 + n1)
-    return cdf, pdf
 
 
 class CookTorranceBRDF(BRDF):
@@ -120,7 +89,7 @@ class CookTorranceBRDF(BRDF):
         ndf = roughness**2 / (NoH**2 * (roughness**2 - 1) + 1)**2
         vdf = 0.25 / (self.ischlick(NoL) * self.ischlick(NoV))
         f0 = metallic * basecolor + (1 - metallic) * 0.16 * specular**2
-        ks, kd = f0, (1 - f0) * (1 - self.metallic)
+        ks, kd = f0, (1 - f0) * (1 - metallic)
         fdf = self.fresnel(f0, NoV)
         return kd * basecolor + ks * fdf * vdf * ndf / ti.pi
 
@@ -165,27 +134,13 @@ class BlinnPhongBRDF(BRDF):
         return (shineness + 8) / 8 * pow(max(0, half.z), shineness)
 
 
-mat_diffuse = CookTorranceBRDF(roughness=0.8,
-        basecolor=(1, 1, 1),
-        metallic=0.0,
-        specular=0.5)
-mat_glossy = CookTorranceBRDF(roughness=0.2,
-        basecolor=(1, 1, 1),
-        metallic=0.9,
-        specular=0.5)
-mat_ground = CookTorranceBRDF(roughness=0.4,
-        basecolor=(1, 0, 0),
-        metallic=0.0,
-        specular=1.0)
-#mat_glossy = SpecularBRDF(color=(1, 1, 1))
-
-
 @ti.data_oriented
 class PathEngine:
-    def __init__(self, res=(512, 512)):
-        self.res = tovector(res)
-
-        self.nrays = V(self.res.x, self.res.y, 1)
+    def __init__(self, res=(512, 512), nrays=32, ntimes=32, nsteps=5):
+        self.res = tovector(res if hasattr(res, '__getitem__') else (res, res))
+        self.nrays = V(self.res.x, self.res.y, nrays)
+        self.ntimes = ntimes
+        self.nsteps = nsteps
 
         self.count = ti.field(int, self.res)
         self.screen = ti.Vector.field(3, float, self.res)
@@ -265,10 +220,10 @@ class PathEngine:
                 self.count[I] += 1
 
     def main(self):
-        for i in range(512):
+        for i in range(self.ntimes):
             with ezprof.scope('step'):
                 self.generate_rays()
-                for j in range(5):
+                for j in range(self.nsteps):
                     self.step_rays()
                 self.update_screen()
         ezprof.show()
@@ -277,4 +232,20 @@ class PathEngine:
 
 
 if __name__ == '__main__':
-    PathEngine().main()
+    ti.init(ti.opengl)
+
+    mat_diffuse = CookTorranceBRDF(roughness=0.8,
+            basecolor=(1, 1, 1),
+            metallic=0.0,
+            specular=0.5)
+    mat_glossy = CookTorranceBRDF(roughness=0.2,
+            basecolor=(1, 1, 1),
+            metallic=0.9,
+            specular=0.5)
+    mat_ground = CookTorranceBRDF(roughness=0.4,
+            basecolor=(1, 0, 0),
+            metallic=0.0,
+            specular=1.0)
+
+    engine = PathEngine()
+    engine.main()
