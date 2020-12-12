@@ -134,9 +134,26 @@ def objunpackmtls(obj):
         cur['v'] = obj['v']
         cur['vn'] = obj['vn']
         cur['vt'] = obj['vt']
-        # TODO: vertex reachability elimation
         parts[name] = cur
     return parts
+
+
+def objmtlids(obj):
+    faces = obj['f']
+    mids = np.zeros(shape=len(faces), dtype=np.int32)
+    ends = []
+    for end, name in obj['usemtl']:
+        ends.append(end)
+    ends.append(len(faces))
+    ends.pop(0)
+    names = []
+    for end, (beg, name) in zip(ends, obj['usemtl']):
+        if name not in names:
+            mids[beg:end] = len(names) + 1
+            names.append(name)
+        else:
+            mids[beg:end] = names.index(name) + 1
+    return mids
 
 
 def objautoscale(obj):

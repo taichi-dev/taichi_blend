@@ -4,7 +4,7 @@ import ezprof
 
 
 EPS = 1e-6
-INF = 1e8
+INF = 1e6
 
 
 @ti.func
@@ -60,12 +60,16 @@ def triangle_intersect(id, v0, v1, v2, ro, rd):
 
 
 @ti.func
-def union_intersect(ret1, ret2):
-    ret = [ti.expr_init(x) for x in ret1]
+def make_null_intersect():
+    ret = [INF, 0, V(0., 0., 0.), V(0., 0., 0.), V(0., 0.)]
+    return ret
+
+
+@ti.func
+def union_intersect(ret: ti.template(), ret2):
     if ret2[0] < ret[0]:
         for x, y in ti.static(zip(ret, ret2)):
             x.assign(y)
-    return ret
 
 
 @ti.data_oriented
@@ -171,7 +175,7 @@ class BlinnPhongBRDF(BRDF):
 
 @ti.data_oriented
 class PathEngine:
-    def __init__(self, res=(512, 512), nrays=32, ntimes=1, nsteps=5):
+    def __init__(self, res=512, nrays=1, ntimes=1, nsteps=1, maxfaces=1024):
         self.res = tovector(res if hasattr(res, '__getitem__') else (res, res))
         self.nrays = V(self.res.x, self.res.y, nrays)
         self.ntimes = ntimes
@@ -183,12 +187,38 @@ class PathEngine:
         self.ray_dir = ti.Vector.field(3, float, self.nrays)
         self.ray_color = ti.Vector.field(3, float, self.nrays)
 
+        self.maxfaces = maxfaces
+        self.tri_count = ti.field(int, ())
+        self.tri_v0 = ti.Vector.field(3, float, self.maxfaces)
+        self.tri_v1 = ti.Vector.field(3, float, self.maxfaces)
+        self.tri_v2 = ti.Vector.field(3, float, self.maxfaces)
+        self.tri_id = ti.field(int, self.maxfaces)
+
+        @ti.materialize_callback
+        def _():
+            from .util.assimp import readobj, objmtlids
+            obj = readobj('/home/bate/Develop/three_taichi/assets/sphere.obj')
+            verts = obj['v'][obj['f'][:, :, 0]]
+            mids = objmtlids(obj)
+
+            assert len(mids) == len(verts)
+            assert len(verts) < maxfaces, len(verts)
+            self.set_triangles(verts, mids)
+
+    @ti.kernel
+    def set_triangles(self, verts: ti.ext_arr(), mids: ti.ext_arr()):
+        self.tri_count[None] = min(verts.shape[0], self.maxfaces)
+        for i in range(self.tri_count[None]):
+            self.tri_id[i] = mids[i]
+            for k in ti.static(range(3)):
+                out = ti.static([self.tri_v0, self.tri_v1, self.tri_v2][k])
+                for l in ti.static(range(3)):
+                    out[i][l] = verts[i, k, l]
+
     @ti.func
     def generate_ray(self, I):
         coor = I / self.res * 2 - 1
-        #org = V23(coor, -1.)
-        #dir = V(0., 0., 1.)
-        org = V(0., 0., -1.)
+        org = V(0., 0., -2.)
         dir = V23(coor, 1.).normalized()
         return org, dir
 
@@ -203,27 +233,21 @@ class PathEngine:
 
     @ti.func
     def intersect(self, org, dir):
-        ret_1 = triangle_intersect(1,
-                V(-.5, -.5, 0.), V(+.5, -.5, 0.), V(0., +.5, 0.),
-                org, dir)
-        ret_2 = triangle_intersect(2,
-                V(-.5, -.5, -.5), V(+.5, -.5, -.5), V(0., -.5, +.5),
-                org, dir)
-        return union_intersect(ret_1, ret_2)
+        ret = make_null_intersect()
+        for i in range(self.tri_count[None]):
+            id = self.tri_id[i]
+            v0, v1, v2 = self.tri_v0[i], self.tri_v1[i], self.tri_v2[i]
+            tmp = triangle_intersect(id, v0, v1, v2, org, dir)
+            union_intersect(ret, tmp)
+        return ret
 
     @ti.func
     def bounce_ray(self, org, dir, i_id, i_pos, i_nrm, i_tex):
         org = i_pos + i_nrm * EPS
         color = V(0., 0., 0.)
-        if i_id == 1:
+        if i_id == 0:
             dir *= 0
-            color = V(4., 4., 4.)
-        elif i_id == 2:
-            dir, color = mat_diffuse.bounce(dir, i_nrm)
-        elif i_id == 3:
-            dir, color = mat_ground.bounce(dir, i_nrm)
-        elif i_id == 4:
-            dir, color = mat_glossy.bounce(dir, i_nrm)
+            color = V(1., 0., 1.)
         return color, org, dir
 
     @ti.kernel
@@ -257,31 +281,22 @@ class PathEngine:
 
     def main(self):
         for i in range(self.ntimes):
-            with ezprof.scope('step'):
+            with ezprof.scope('gen'):
                 self.generate_rays()
-                for j in range(self.nsteps):
+            for j in range(self.nsteps):
+                with ezprof.scope('step'):
                     self.step_rays()
+            with ezprof.scope('update'):
                 self.update_screen()
+        with ezprof.scope('export'):
+            img = self.screen.to_numpy()
+
+        img = aces_tonemap(ti.imresize(img, 512))
         ezprof.show()
-        img = aces_tonemap(ti.imresize(self.screen, 512))
-        ti.imshow(img)#; ti.imwrite(img, '/tmp/out.png')
+        ti.imshow(img)
 
 
 if __name__ == '__main__':
-    ti.init(ti.opengl)
-
-    mat_diffuse = CookTorranceBRDF(roughness=0.8,
-            basecolor=(1, 1, 1),
-            metallic=0.0,
-            specular=0.5)
-    mat_glossy = CookTorranceBRDF(roughness=0.2,
-            basecolor=(1, 1, 1),
-            metallic=0.9,
-            specular=0.5)
-    mat_ground = CookTorranceBRDF(roughness=0.4,
-            basecolor=(1, 0, 0),
-            metallic=0.0,
-            specular=1.0)
-
+    ti.init(ti.cpu)
     engine = PathEngine()
     engine.main()
