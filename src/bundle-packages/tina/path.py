@@ -26,11 +26,43 @@ def sphere_intersect(s_id, s_pos, s_rad, r_org, r_dir):
 
 
 @ti.func
+def triangle_intersect(id, v0, v1, v2, ro, rd):
+    e1 = v1 - v0
+    e2 = v2 - v0
+    p = rd.cross(e2)
+    det = e1.dot(p)
+    r = ro - v0
+    t, u, v = 0.0, 0.0, 0.0
+    ipos, inrm = V(0.0, 0.0, 0.0), V(0.0, 0.0, 0.0)
+
+    if det < 0:
+        r = -r
+        det = -det
+
+    if det >= EPS:
+        u = r.dot(p)
+        if 0 <= u <= det:
+            q = r.cross(e1)
+            v = rd.dot(q)
+            if v >= 0 and u + v <= det:
+                t = e2.dot(q)
+                det = 1 / det
+                t *= det
+                u *= det
+                v *= det
+                inrm = e1.cross(e2).normalized()
+                ipos = ro + t * rd
+
+    return t, id, ipos, inrm
+
+
+@ti.func
 def union_intersect(ret1, ret2):
-    t, id, pos, nrm = ret1
-    if ret2[0] < t:
-        t, id, pos, nrm = ret2
-    return t, id, pos, nrm
+    ret = [ti.expr_init(x) for x in ret1]
+    if ret2[0] < ret[0]:
+        for x, y in ti.static(zip(ret, ret2)):
+            x.assign(y)
+    return ret
 
 
 @ti.data_oriented
@@ -170,7 +202,8 @@ class PathEngine:
     def intersect(self, org, dir):
         ret1 = sphere_intersect(1, V(-.5, 0., 0.), .4, org, dir)
         ret2 = sphere_intersect(2, V(+.5, 0., 0.), .4, org, dir)
-        ret3 = sphere_intersect(3, V(0, -1e2-.5, 0.), 1e2, org, dir)
+        #ret3 = sphere_intersect(3, V(0, -1e2-.5, 0.), 1e2, org, dir)
+        ret3 = triangle_intersect(3, V(+.5, 0., -.25), V(-.5, 0., -.25), V(0., 0., +.25), org, dir)
         ret4 = sphere_intersect(4, V(0., -.35, -.25), .15, org, dir)
         ret = union_intersect(ret1, union_intersect(ret2, union_intersect(ret3, ret4)))
         return ret
