@@ -22,7 +22,8 @@ def sphere_intersect(s_id, s_pos, s_rad, r_org, r_dir):
                 i_t = INF
     i_pos = r_org + i_t * r_dir
     i_nrm = (i_pos - s_pos).normalized()
-    return i_t, s_id, i_pos, i_nrm
+    i_tex = V(0., 0.)  # NotImplemented
+    return i_t, s_id, i_pos, i_nrm, i_tex
 
 
 @ti.func
@@ -32,8 +33,9 @@ def triangle_intersect(id, v0, v1, v2, ro, rd):
     p = rd.cross(e2)
     det = e1.dot(p)
     r = ro - v0
-    t, u, v = 0.0, 0.0, 0.0
-    ipos, inrm = V(0.0, 0.0, 0.0), V(0.0, 0.0, 0.0)
+
+    t, u, v = INF, 0.0, 0.0
+    ipos, inrm, itex = V(0.0, 0.0, 0.0), V(0.0, 0.0, 0.0), V(0.0, 0.0)
 
     if det < 0:
         r = -r
@@ -52,8 +54,9 @@ def triangle_intersect(id, v0, v1, v2, ro, rd):
                 v *= det
                 inrm = e1.cross(e2).normalized()
                 ipos = ro + t * rd
+                itex = V(u, v)
 
-    return t, id, ipos, inrm
+    return t, id, ipos, inrm, itex
 
 
 @ti.func
@@ -168,7 +171,7 @@ class BlinnPhongBRDF(BRDF):
 
 @ti.data_oriented
 class PathEngine:
-    def __init__(self, res=(512, 512), nrays=32, ntimes=32, nsteps=5):
+    def __init__(self, res=(512, 512), nrays=32, ntimes=1, nsteps=5):
         self.res = tovector(res if hasattr(res, '__getitem__') else (res, res))
         self.nrays = V(self.res.x, self.res.y, nrays)
         self.ntimes = ntimes
@@ -200,16 +203,16 @@ class PathEngine:
 
     @ti.func
     def intersect(self, org, dir):
-        ret1 = sphere_intersect(1, V(-.5, 0., 0.), .4, org, dir)
-        ret2 = sphere_intersect(2, V(+.5, 0., 0.), .4, org, dir)
-        #ret3 = sphere_intersect(3, V(0, -1e2-.5, 0.), 1e2, org, dir)
-        ret3 = triangle_intersect(3, V(+.5, 0., -.25), V(-.5, 0., -.25), V(0., 0., +.25), org, dir)
-        ret4 = sphere_intersect(4, V(0., -.35, -.25), .15, org, dir)
-        ret = union_intersect(ret1, union_intersect(ret2, union_intersect(ret3, ret4)))
-        return ret
+        ret_1 = triangle_intersect(1,
+                V(-.5, -.5, 0.), V(+.5, -.5, 0.), V(0., +.5, 0.),
+                org, dir)
+        ret_2 = triangle_intersect(2,
+                V(-.5, -.5, -.5), V(+.5, -.5, -.5), V(0., -.5, +.5),
+                org, dir)
+        return union_intersect(ret_1, ret_2)
 
     @ti.func
-    def bounce_ray(self, org, dir, i_id, i_pos, i_nrm):
+    def bounce_ray(self, org, dir, i_id, i_pos, i_nrm, i_tex):
         org = i_pos + i_nrm * EPS
         color = V(0., 0., 0.)
         if i_id == 1:
@@ -231,12 +234,12 @@ class PathEngine:
 
             org = self.ray_org[r]
             dir = self.ray_dir[r]
-            t, i_id, i_pos, i_nrm = self.intersect(org, dir)
+            t, i_id, i_pos, i_nrm, i_tex = self.intersect(org, dir)
             if t >= INF:
                 self.ray_color[r] *= 0
                 self.ray_dir[r] *= 0
             else:
-                color, org, dir = self.bounce_ray(org, dir, i_id, i_pos, i_nrm)
+                color, org, dir = self.bounce_ray(org, dir, i_id, i_pos, i_nrm, i_tex)
                 self.ray_color[r] *= color
                 self.ray_org[r] = org
                 self.ray_dir[r] = dir
