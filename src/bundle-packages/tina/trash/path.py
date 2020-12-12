@@ -175,17 +175,19 @@ class BlinnPhongBRDF(BRDF):
 
 @ti.data_oriented
 class PathEngine:
-    def __init__(self, res=512, nrays=1, ntimes=1, nsteps=1, maxfaces=1024):
+    def __init__(self, res=512, nrays=1, ntimes=1, nsteps=1,
+            maxfaces=1024, maxnodes=1024, maxchilds=32):
         self.res = tovector(res if hasattr(res, '__getitem__') else (res, res))
-        self.nrays = V(self.res.x, self.res.y, nrays)
+        self.scr_count = ti.field(int, self.res)
+        self.screen = ti.Vector.field(3, float, self.res)
+
+        self.nrays = nrays
         self.ntimes = ntimes
         self.nsteps = nsteps
-
-        self.count = ti.field(int, self.res)
-        self.screen = ti.Vector.field(3, float, self.res)
-        self.ray_org = ti.Vector.field(3, float, self.nrays)
-        self.ray_dir = ti.Vector.field(3, float, self.nrays)
-        self.ray_color = ti.Vector.field(3, float, self.nrays)
+        rays_shape = V(self.res.x, self.res.y, nrays)
+        self.ray_org = ti.Vector.field(3, float, rays_shape)
+        self.ray_dir = ti.Vector.field(3, float, rays_shape)
+        self.ray_color = ti.Vector.field(3, float, rays_shape)
 
         self.maxfaces = maxfaces
         self.tri_count = ti.field(int, ())
@@ -193,6 +195,17 @@ class PathEngine:
         self.tri_v1 = ti.Vector.field(3, float, self.maxfaces)
         self.tri_v2 = ti.Vector.field(3, float, self.maxfaces)
         self.tri_id = ti.field(int, self.maxfaces)
+
+        self.maxnodes = maxnodes
+        self.maxchilds = maxchilds
+        self.nod_count = ti.field(int, ())
+        self.nod_pos = ti.Vector.field(3, float, self.maxnodes)
+        self.nod_size = ti.field(float, self.maxnodes)
+        self.nod_elms = ti.field(int, (self.maxnodes, self.maxchilds))
+        self.nod_elm_count = ti.field(int, self.maxnodes)
+        self.nod_ch = ti.field(int, (self.maxnodes, 8))
+        self.nod_last = ti.field(int, self.maxnodes)
+        self.nod_par = ti.field(int, self.maxnodes)
 
         @ti.materialize_callback
         def _():
@@ -204,6 +217,98 @@ class PathEngine:
             assert len(mids) == len(verts)
             assert len(verts) < maxfaces, len(verts)
             self.set_triangles(verts, mids)
+            self.build_tree()
+
+    @ti.func
+    def tree_child(self, nod, pos):
+        org = self.nod_pos[nod]
+        x, y, z = 1 if pos >= org else 0
+        return z * 4 + y * 2 + x
+
+    @ti.func
+    def tree_append(self, nod, id):
+        i = ti.atomic_add(self.nod_elm_count[nod], 1)
+        self.nod_elms[nod, i] = id
+        return i
+
+    @ti.func
+    def tree_allocate(self, pos, size, par):
+        i = ti.atomic_add(self.nod_count[None], 1)
+        self.nod_pos[i] = pos
+        self.nod_size[i] = size
+        self.nod_elm_count[i] = 0
+        for j in ti.static(range(8)):
+            self.nod_ch[i, j] = 0
+        self.nod_par[i] = par
+        return i
+
+    @ti.func
+    def tree_insert(self, id, bmin, bmax):
+        cur = 0
+        while True:
+            lo = self.tree_child(cur, bmin)
+            hi = self.tree_child(cur, bmax)
+            if lo != hi:
+                break
+            if self.nod_ch[cur, lo] == 0:
+                pos = self.nod_pos[cur]
+                half = self.nod_size[cur] / 2
+                coor = V(lo % 2, lo // 2 % 2, lo // 4)
+                pos += half if coor else -half
+                self.nod_ch[cur, lo] = self.tree_allocate(pos, half, cur)
+            cur = self.nod_ch[cur, lo]
+        self.tree_append(cur, id)
+        return cur
+
+    @ti.kernel
+    def build_tree(self):
+        self.nod_count[None] = 0
+        self.tree_allocate(V(0., 0., 0.), 2., 0)
+        for _ in range(1):
+            for i in range(self.tri_count[None]):
+                id = self.tri_id[i]
+                v0, v1, v2 = self.tri_v0[i], self.tri_v1[i], self.tri_v2[i]
+                bmin, bmax = min(v0, v1, v2), max(v0, v1, v2)
+                self.tree_insert(id, bmin, bmax)
+
+    @ti.func
+    def walk_tree(self, org, dir):
+        cur = 0
+        while True:
+            spt = sphere_intersect(0,
+                    self.nod_pos[cur], self.nod_size[cur], org, dir)[0]
+            if spt >= INF:
+                break
+            for e in range(self.nod_elm_count[cur]):
+                yield self.nod_elms[cur, e]
+            found = 0
+            for i in range(self.nod_last[cur], 8):
+                ch = self.nod_ch[cur, i]
+                if ch != 0:
+                    cur = ch
+                    self.nod_last[cur] = i + 1
+                    found = 1
+                    break
+            if found == 0:
+                self.nod_last[cur] = 8
+                cur = self.nod_par[cur]
+                if cur == 0:
+                    break
+
+    @ti.func
+    def tree_clean(self):
+        for i in self.nod_last:
+            self.nod_last[i] = 0
+
+    @ti.func
+    def tree_intersect(self, org, dir):
+        ret = make_null_intersect()
+        for i in ti.static(self.walk_tree(org, dir)):
+            id = self.tri_id[i]
+            v0, v1, v2 = self.tri_v0[i], self.tri_v1[i], self.tri_v2[i]
+            tmp = triangle_intersect(id, v0, v1, v2, org, dir)
+            union_intersect(ret, tmp)
+        return ret
 
     @ti.kernel
     def set_triangles(self, verts: ti.ext_arr(), mids: ti.ext_arr()):
@@ -252,6 +357,7 @@ class PathEngine:
 
     @ti.kernel
     def step_rays(self):
+        self.tree_clean()
         for r in ti.grouped(self.ray_org):
             if all(self.ray_dir[r] == 0):
                 continue
@@ -271,13 +377,13 @@ class PathEngine:
     @ti.kernel
     def update_screen(self):
         for I in ti.grouped(self.screen):
-            for samp in range(self.nrays.z):
+            for samp in range(self.nrays):
                 r = V23(I, samp)
                 color = self.ray_color[r]
-                count = self.count[I]
+                count = self.scr_count[I]
                 self.screen[I] *= count / (count + 1)
                 self.screen[I] += color / (count + 1)
-                self.count[I] += 1
+                self.scr_count[I] += 1
 
     def main(self):
         for i in range(self.ntimes):

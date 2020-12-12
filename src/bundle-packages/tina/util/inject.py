@@ -74,4 +74,4 @@ def _(self, *args, **kwargs):
     return callback
 
 
-    print('Injected!')
+print('[Tina] Taichi JIT injected!')
