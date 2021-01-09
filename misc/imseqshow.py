@@ -1,10 +1,12 @@
 import taichi as ti
-import os
+import os, sys
+
+prefix = sys.argv[1] if len(sys.argv) >= 1 else ''
 
 images = []
 frames = 0
 while True:
-    file = f'{frames + 1:04d}.png'
+    file = f'{prefix}{frames + 1:04d}.png'
     if not os.path.exists(file):
         break
     print('Loading', file)

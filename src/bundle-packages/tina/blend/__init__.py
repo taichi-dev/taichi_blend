@@ -150,7 +150,7 @@ uniform sampler2D tex0;
 
 void main()
 {
-    vec3 color = texture2D(tex0, fragCoord).rgb;
+    vec3 color = texture(tex0, fragCoord).rgb;
     color = clamp(color, 0, 1);
     fragColor = vec4(color, 1.0);
 }
