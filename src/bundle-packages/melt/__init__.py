@@ -12,11 +12,12 @@ from .make_meta import Meta, C
 
 
 class IRun(INode):
-    def __init__(self, chain):
+    def __init__(self, chain=None):
         self.chain = chain
 
     def run(self):
-        self.chain.run()
+        if self.chain is not None:
+            self.chain.run()
         self._run()
 
     def _run(self):

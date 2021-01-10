@@ -289,3 +289,28 @@ class MPMEmitter(IRun):
 
     def run(self):
         self.domain.mpm.emit(self.material, self.sample)
+
+
+@A.register
+class FilterMaterial(IField):
+    '''
+    Name: filter_material
+    Category: converter
+    Inputs: pos:vf mat:f material:mtr
+    Output: pos:vf
+    '''
+    def __init__(self, pos, mat, material):
+        assert isinstance(pos, IField)
+        self.pos = pos
+        self.mat = mat
+        self.material = 'water jelly snow sand'.split().index(material)
+
+    @ti.func
+    def __iter__(self):
+        for I in ti.smart(self.pos):
+            if self.mat[I] == self.material:
+                yield I
+
+    @ti.func
+    def _subscript(self, I):
+        return self.pos[I]
