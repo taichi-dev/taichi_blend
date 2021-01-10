@@ -183,12 +183,16 @@ class MeshSequence(IRun):
     Inputs: object:a update:t verts:vf faces:vf
     Output: update:t
     '''
-    def __init__(self, object, update, verts):
+    def __init__(self, object, update, verts, faces):
         assert isinstance(object, NewMeshObject)
         assert isinstance(update, IRun)
         assert isinstance(verts, IField)
+        assert faces is None or isinstance(faces, IField)
 
+        #faces = A.field_storage(C.int(3)[1])
+        #ti.materialize_callback(lambda: faces.from_numpy(np.array([[0, 1, 2]], dtype=np.int32)))
         self.verts = verts
+        self.faces = faces
         self.object = object
         self.update = update
 
@@ -219,6 +223,7 @@ class MeshSequence(IRun):
             length = self.verts.meta.shape[0]
         verts = np.empty(length * 3)
         export_vfield(self.verts, verts, 3)
+        verts = verts.reshape(len(verts) // 3, 3)
 
         if self.faces is not None:
             if hasattr(self.faces, 'get_length'):
@@ -228,6 +233,7 @@ class MeshSequence(IRun):
                 length = self.faces.meta.shape[0]
             faces = np.empty(length * 3)
             export_vfield(self.faces, faces, 3)
+            faces = faces.reshape(len(faces) // 3, 3)
         else:
             faces = None
 
@@ -243,10 +249,7 @@ class MeshSequence(IRun):
             frame = len(self.cache) + bpy.context.scene.frame_start
             mesh_name = f'{self.object.name}_{frame:03d}'
             verts, faces = self.update_data()
-            mesh = new_mesh(mesh_name)
-            from_flat_numpy(mesh.vertices, 'co', verts, 3)
-            if faces is not None:
-                from_flat_numpy(mesh.polygons, 'vertices', faces, 3)
+            mesh = new_mesh(mesh_name, verts, None, faces)
             mesh.update()
             self.cache.append(mesh_name)
 
@@ -273,17 +276,17 @@ class CurrentFrameId(A.uniform_field, IRun):
 
 
 @A.register
-def OutputMeshAnimation(target, preserve, verts, start, update):
+def OutputMeshAnimation(target, preserve, verts, faces, start, update):
     '''
     Name: output_mesh_animation
     Category: output
-    Inputs: target:so preserve:b verts:vf start:t update:t
+    Inputs: target:so preserve:b verts:vf faces:vf start:t update:t
     Output:
     '''
 
     object = NewMeshObject(target, preserve)
     start = A.merge_tasks(object, start)
-    update = MeshSequence(object, update, verts)
+    update = MeshSequence(object, update, verts, faces)
     return OutputTasks(start, update)
 
 

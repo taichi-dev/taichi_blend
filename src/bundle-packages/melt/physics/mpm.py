@@ -245,15 +245,15 @@ class MPMSolver:
 
 
 @A.register
-class Def(IRun):
+class Def:
     '''
     Name: mpm_solver
     Category: physics
     Inputs: res:i3 gravity:c3
-    Output: pos:cf% vel:cf% mat:cf% update:t% reset:t%
+    Output: pos:vf% vel:vf% mat:f% update:t% reset:t%
     '''
     def __init__(self, res, gravity=(0, 0, 9.8)):
-        self.mpm = MPMSolver(res, gravity)
+        self.mpm = MPMSolver(res, gravity=gravity)
         self.update = self._RunProxy(self.mpm.step)
         self.reset = self._RunProxy(self.mpm.reset)
         self.pos = self._FieldProxy(self.mpm.x, C.float(3), self.mpm.get_num_particles)

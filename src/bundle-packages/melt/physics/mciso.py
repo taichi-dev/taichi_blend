@@ -57,7 +57,7 @@ class MCISO:
 
     @ti.kernel
     def voxelize(self, pos: ti.template(), w0: float):
-        for p in pos:
+        for p in ti.smart(pos):
             Xp = pos[p] / self.dx
             base = int(ti.floor(Xp - 0.5))
             fx = Xp - base
@@ -216,71 +216,37 @@ class MCISO:
         return ti.Matrix.identity(float, 4)
 
 
-class _MCISO_Example1(MCISO):
-    @ti.func
-    def gauss(self, x):
-        return ti.exp(-6 * x**2)
+@A.register
+class Def(IRun):
+    '''
+    Name: marching_cube
+    Category: physics
+    Inputs: update:t pos:vf res:i3 w0:c rad:i sig:c
+    Output: verts:vf% faces:vf% update:t
+    '''
+    def __init__(self, chain, pos, res, w0, rad, sig):
+        super().__init__(chain)
+        self.mciso = MCISO(res)
+        self.pos = pos
+        self.w0 = w0
+        self.rad = rad
+        self.sig = sig
+        self.verts = self._FieldProxy(self.mciso.vs, C.float(3), self.get_nverts)
+        self.faces = self._FieldProxy(self.mciso.Jts, C.int(3), self.get_nfaces)
 
     @ti.kernel
-    def touch(self, mx: float, my: float):
-        for o in ti.grouped(ti.ndrange(*self.res)):
-            p = o / self.res
-            a = self.gauss((p - 0.5).norm() / 0.25)
-            p.x -= mx - 0.5 / self.res.x
-            p.y -= my - 0.5 / self.res.y
-            if ti.static(self.dim == 3):
-                p.z -= 0.5
-            b = self.gauss(p.norm() / 0.25)
-            r = max(a + b - 0.08, 0)
-            if r <= 0:
-                continue
-            self.m[o] = r * 3
+    def get_nverts(self) -> int:
+        return self.mciso.vs_n[None]
 
-    def main(self):
-        gui = ti.GUI('Marching cube')
+    @ti.kernel
+    def get_nfaces(self) -> int:
+        return self.mciso.Js_n[None]
 
-        scene = tina.Scene(maxfaces=2**18, smoothing=True)
-        scene.add_object(self)
+    def _run(self):
+        self.mciso.march(self.pos, self.w0, self.rad, self.sig)
 
-        while gui.running and not gui.get_event(gui.ESCAPE):
-            self.grid.deactivate_all()
-            self.touch(*gui.get_cursor_pos())
-            self.calc_norm()
-            self.gen_mesh()
-
-            scene.render()
-            gui.set_image(scene.img)
-            gui.show()
-
-
-class _MCISO_Example2(MCISO):
-    def main(self):
-        gui = ti.GUI('Marching cube')
-
-        scene = tina.Scene(maxfaces=2**20, smoothing=True)
-        scene.add_object(self)
-
-        pos = ti.Vector.field(3, float, 2**17)
-        pos.from_numpy(np.random.rand(pos.shape[0], 3).astype(np.float32) * 0.6 - 0.3)
-
-        w0 = gui.slider('w0', 0, 100, 0.1)
-        w0.value = 42
-        rad = gui.slider('rad', 0, 12, 1)
-        rad.value = 3
-        sig = gui.slider('sig', 0, 4, 0.1)
-        sig.value = 1.2
-
-        scene.init_control(gui, blendish=True)
-        while gui.running:
-            scene.input(gui)
-            self.march(pos, w0.value, rad.value, sig.value)
-            scene.render()
-            gui.set_image(scene.img)
-            gui.show()
-
-
-if __name__ == '__main__':
-    ti.init(ti.cuda, kernel_profiler=True)
-    _MCISO_Example2([128] * 3).main()
-    #_MCISO_Example1([128] * 3).main()
-    ti.kernel_profiler_print()
+    class _FieldProxy(Field):
+        def __init__(self, field, meta, getlen):
+            self.meta = meta
+            self.core = field
+            self.get_length = getlen
