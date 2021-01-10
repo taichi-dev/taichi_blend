@@ -180,10 +180,10 @@ class MeshSequence(IRun):
     '''
     Name: mesh_sequence
     Category: blender
-    Inputs: object:a update:t verts:vf faces:vf
+    Inputs: object:a update:t verts:vf faces:vf smooth:b
     Output: update:t
     '''
-    def __init__(self, object, update, verts, faces):
+    def __init__(self, object, update, verts, faces, use_smooth):
         assert isinstance(object, NewMeshObject)
         assert isinstance(update, IRun)
         assert isinstance(verts, IField)
@@ -195,6 +195,7 @@ class MeshSequence(IRun):
         self.faces = faces
         self.object = object
         self.update = update
+        self.use_smooth = use_smooth
 
         self.cache = []
 
@@ -214,7 +215,8 @@ class MeshSequence(IRun):
             bpy.app.handlers.save_pre.append(save_pre)
 
     def update_data(self):
-        self.update.run()
+        if self.update is not None:
+            self.update.run()
 
         if hasattr(self.verts, 'get_length'):
             length = self.verts.get_length()
@@ -250,6 +252,8 @@ class MeshSequence(IRun):
             mesh_name = f'{self.object.name}_{frame:03d}'
             verts, faces = self.update_data()
             mesh = new_mesh(mesh_name, verts, None, faces)
+            if self.use_smooth:
+                mesh.polygons.foreach_set('use_smooth', [True] * len(mesh.polygons))
             mesh.update()
             self.cache.append(mesh_name)
 
@@ -276,17 +280,17 @@ class CurrentFrameId(A.uniform_field, IRun):
 
 
 @A.register
-def OutputMeshAnimation(target, preserve, verts, faces, start, update):
+def OutputMeshAnimation(target, preserve, smooth, verts, faces, start, update):
     '''
     Name: output_mesh_animation
     Category: output
-    Inputs: target:so preserve:b verts:vf faces:vf start:t update:t
+    Inputs: target:so preserve:b smooth:b verts:vf faces:vf start:t update:t
     Output:
     '''
 
     object = NewMeshObject(target, preserve)
-    start = A.merge_tasks(object, start)
-    update = MeshSequence(object, update, verts, faces)
+    start = A.merge_tasks(object, start) if start is not None else object
+    update = MeshSequence(object, update, verts, faces, smooth)
     return OutputTasks(start, update)
 
 
