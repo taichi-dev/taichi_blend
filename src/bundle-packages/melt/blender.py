@@ -286,11 +286,18 @@ class MeshSequence(IRun):
         frame = min(frame, bpy.context.scene.frame_end)
         frameid = frame - bpy.context.scene.frame_start
 
+        object = bpy.data.objects[self.object.name]
+        old_mesh_mats = list(object.data.materials)
+
         while len(self.cache) <= frameid:
             frame = len(self.cache) + bpy.context.scene.frame_start
             mesh_name = f'{self.object.name}_{frame:03d}'
+            print('evaluating frame', frame)
             verts, faces = self.update_data()
             mesh = new_mesh(mesh_name, verts, None, faces)
+            for mat in old_mesh_mats:
+                if mat.name not in mesh.materials:
+                    mesh.materials.append(mat)
             if self.use_smooth:
                 mesh.polygons.foreach_set('use_smooth', [True] * len(mesh.polygons))
             mesh.update()
