@@ -20,7 +20,7 @@ class MPMSolver:
         self.p_vol = self.dx**self.dim
         self.p_mass = self.p_vol * self.p_rho
         self.gravity = tovector(gravity[:self.dim])
-        self.E = 1e5 * size * E_scale
+        self.E = 1e6 * size * E_scale
         self.nu = 0.2
 
         self.mu_0 = self.E / (2 * (1 + self.nu))
@@ -28,6 +28,7 @@ class MPMSolver:
         sin_phi = ti.sin(np.radians(45))
         self.alpha = ti.sqrt(2 / 3) * 2 * sin_phi / (3 - sin_phi)
 
+        self.num = ti.field(int, ())
         self.x = ti.Vector.field(self.dim, float)
         self.v = ti.Vector.field(self.dim, float)
         self.C = ti.Matrix.field(self.dim, self.dim, float)
@@ -65,17 +66,16 @@ class MPMSolver:
             self.particle.place(c)
         self.particle_num = ti.field(int, ())
 
-        ti.materialize_callback(self.reset)
-
     @ti.kernel
-    def reset(self):
-        for i in range(self.res.x**self.dim):
-            pos = ti.Vector([ti.random() for i in range(self.dim)]) * 0.7
+    def emit(self, material: int, pars: ti.template()):
+        for i in ti.smart(pars):
+            pos = pars[i]
+            n = ti.atomic_add(self.num[None], 1)
             vel = ti.Vector.zero(float, self.dim)
-            self.seed_particle(i, pos, vel, self.WATER)
+            self.emit_particle(n, pos, vel, material)
 
     @ti.func
-    def seed_particle(self, i, pos, vel, material):
+    def emit_particle(self, i, pos, vel, material):
         self.x[i] = pos
         self.v[i] = vel
         self.F[i] = ti.Matrix.identity(float, self.dim)
@@ -245,17 +245,16 @@ class MPMSolver:
 
 
 @A.register
-class Def:
+class MPMDomain:
     '''
-    Name: mpm_solver
+    Name: mpm_domain
     Category: physics
     Inputs: res:i3 gravity:c3
-    Output: pos:vf% vel:vf% mat:f% update:t% reset:t%
+    Output: pos:vf% vel:vf% mat:f% update:t% domain:a
     '''
     def __init__(self, res, gravity=(0, 0, 9.8)):
         self.mpm = MPMSolver(res, gravity=gravity)
         self.update = self._RunProxy(self.mpm.step)
-        self.reset = self._RunProxy(self.mpm.reset)
         self.pos = self._FieldProxy(self.mpm.x, C.float(3), self.mpm.get_num_particles)
         self.vel = self._FieldProxy(self.mpm.v, C.float(3), self.mpm.get_num_particles)
         self.mat = self._FieldProxy(self.mpm.material, C.int(), self.mpm.get_num_particles)
@@ -272,3 +271,21 @@ class Def:
             self.meta = meta
             self.core = field
             self.get_length = getlen
+
+
+@A.register
+class MPMEmitter(IRun):
+    '''
+    Name: mpm_emitter
+    Category: physics
+    Inputs: domain:a material:mtr sample:vf
+    Output: emit:t
+    '''
+    def __init__(self, domain, material, sample):
+        assert isinstance(sample, IField)
+        self.domain = domain
+        self.material = 'water jelly snow sand'.split().index(material)
+        self.sample = sample
+
+    def run(self):
+        self.domain.mpm.emit(self.material, self.sample)

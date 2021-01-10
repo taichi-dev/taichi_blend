@@ -176,6 +176,45 @@ class NewMeshObject(IRun):
 
 
 @A.register
+class RunAtFrame(IRun):
+    '''
+    Name: run_at_frame
+    Category: blender
+    Inputs: update:t task:t frame:i
+    Output: update:t
+    '''
+    def __init__(self, chain, task, frame):
+        super().__init__(chain)
+        assert isinstance(task, IRun)
+        self.task = task
+        self.frame = frame
+
+    def _run(self):
+        if self.frame == bpy.context.scene.frame_current:
+            self.task.run()
+
+
+@A.register
+class RunInFrameRange(IRun):
+    '''
+    Name: run_in_frame_range
+    Category: blender
+    Inputs: update:t task:t frame_start:i frame_end:i
+    Output: update:t
+    '''
+    def __init__(self, chain, task, frame_start, frame_end):
+        super().__init__(chain)
+        assert isinstance(task, IRun)
+        self.task = task
+        self.frame_start = frame_start
+        self.frame_end = frame_end
+
+    def _run(self):
+        if self.frame_begin <= bpy.context.scene.frame_current <= self.frame_end:
+            self.task.run()
+
+
+@A.register
 class MeshSequence(IRun):
     '''
     Name: mesh_sequence

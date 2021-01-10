@@ -4,7 +4,7 @@ from . import *
 @A.register
 class MPMSolver(IField, IRun):
     '''
-    Name: mpm_fluid_solver
+    Name: deprecated_mpm_solver
     Category: physics
     Inputs: dim:i n_grid:i elastic:c gravity:c3
     Output: pos:cf update:t

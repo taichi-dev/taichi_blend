@@ -24,6 +24,7 @@ class NodeSystem:
             's': 'str',
             'dt': 'enum',
             'fmt': 'enum',
+            'mtr': 'enum',
             'so': 'search_object',
             'i2': 'vec_int_2',
             'i3': 'vec_int_3',
@@ -33,6 +34,7 @@ class NodeSystem:
     type2items = {
             'dt': 'float int i8 i16 i32 i64 u8 u16 u32 u64 f32 f64'.split(),
             'fmt': 'npy npy.gz npy.xz png jpg bmp none'.split(),
+            'mtr': 'water jelly snow sand'.split(),
     }
 
     def __init__(self):
