@@ -1,16 +1,6 @@
 from . import *
 
 
-@ti.func
-def list_subscript(a, i):
-    '''magic method to subscript a list with dynamic index'''
-    ret = sum(a) * 0
-    for j in ti.static(range(len(a))):
-        if i == j:
-            ret = a[j]
-    return ret
-
-
 @A.register
 class MPMSolver(IField, IRun):
     '''

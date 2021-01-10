@@ -1,8 +1,8 @@
 from . import *
-from .mpm88 import MPMSolver
+from .mpm88 import MPM88Solver
 
 
-class VisualMPMSolver(MPMSolver):
+class VisualMPMSolver(MPM88Solver):
     def T(self, a):
         if self.dim == 2:
             return a

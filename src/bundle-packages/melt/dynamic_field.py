@@ -51,5 +51,9 @@ class DynamicField(Field):
     def __str__(self):
         return str(self.core)
 
+    @ti.kernel
+    def get_length(self) -> int:
+        return self.size[None]
+
 
 Def = DynamicField

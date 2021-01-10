@@ -180,7 +180,7 @@ class MeshSequence(IRun):
     '''
     Name: mesh_sequence
     Category: blender
-    Inputs: object:a update:t verts:vf
+    Inputs: object:a update:t verts:vf faces:vf
     Output: update:t
     '''
     def __init__(self, object, update, verts):
@@ -211,10 +211,27 @@ class MeshSequence(IRun):
 
     def update_data(self):
         self.update.run()
-        assert len(self.verts.meta.shape) == 1, 'please use A.flatten_field'
-        verts = np.empty(self.verts.meta.shape[0] * 3)
+
+        if hasattr(self.verts, 'get_length'):
+            length = self.verts.get_length()
+        else:
+            assert len(self.verts.meta.shape) == 1, 'please use A.flatten_field'
+            length = self.verts.meta.shape[0]
+        verts = np.empty(length * 3)
         export_vfield(self.verts, verts, 3)
-        return verts
+
+        if self.faces is not None:
+            if hasattr(self.faces, 'get_length'):
+                length = self.faces.get_length()
+            else:
+                assert len(self.faces.meta.shape) == 1, 'please use A.flatten_field'
+                length = self.faces.meta.shape[0]
+            faces = np.empty(length * 3)
+            export_vfield(self.faces, faces, 3)
+        else:
+            faces = None
+
+        return verts, faces
 
     def run(self):
         frame = bpy.context.scene.frame_current
@@ -225,9 +242,11 @@ class MeshSequence(IRun):
         while len(self.cache) <= frameid:
             frame = len(self.cache) + bpy.context.scene.frame_start
             mesh_name = f'{self.object.name}_{frame:03d}'
-            verts = self.update_data()
+            verts, faces = self.update_data()
             mesh = new_mesh(mesh_name)
             from_flat_numpy(mesh.vertices, 'co', verts, 3)
+            if faces is not None:
+                from_flat_numpy(mesh.polygons, 'vertices', faces, 3)
             mesh.update()
             self.cache.append(mesh_name)
 

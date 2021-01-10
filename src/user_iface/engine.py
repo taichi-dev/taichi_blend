@@ -5,7 +5,7 @@ import numpy as np
 def taichi_init():
     import taichi as ti
     backend = bpy.context.scene.taichi_use_backend.lower()
-    ti.init(arch=getattr(ti, backend))
+    ti.init(arch=getattr(ti, backend), make_block_local=False)
 
     from melt.blender import get_node_table
     name = bpy.context.scene.taichi_node_group
