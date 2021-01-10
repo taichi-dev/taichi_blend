@@ -89,7 +89,7 @@ class InputObjectMesh(IRun):
     Name: input_object_mesh
     Category: input
     Inputs: object:so maxverts:i maxfaces:i npolygon:i use_raw:b
-    Output: verts:cf% faces:cf% update:t
+    Output: verts:vf% faces:vf% update:t
     '''
     def __init__(self, name, maxverts, maxfaces, npolygon, use_raw=False):
         self.name = name

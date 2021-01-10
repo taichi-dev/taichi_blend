@@ -153,7 +153,7 @@ class MCISO:
                     p = max(0, min(1, p))
                     vs[t] += p
                     ns += p * n2
-            self.vs[vs_n] = vs
+            self.vs[vs_n] = (vs + 0.5) / self.res
             self.ns[vs_n] = ns.normalized(1e-4)
             self.Jtab[J] = vs_n
 
@@ -199,9 +199,9 @@ class MCISO:
 
     @ti.func
     def get_face_verts(self, n):
-        a = (self.vs[self.Jts[n][2]] + 0.5) / self.res
-        b = (self.vs[self.Jts[n][1]] + 0.5) / self.res
-        c = (self.vs[self.Jts[n][0]] + 0.5) / self.res
+        a = self.vs[self.Jts[n][2]]
+        b = self.vs[self.Jts[n][1]]
+        c = self.vs[self.Jts[n][0]]
         return a, b, c
 
     @ti.func
