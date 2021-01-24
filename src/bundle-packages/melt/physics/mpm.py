@@ -38,7 +38,7 @@ class MPMSolver:
 
         indices = ti.ij if self.dim == 2 else ti.ijk
 
-        grid_size = 4096
+        grid_size = 1024
         grid_block_size = 128
         leaf_block_size = 16 if self.dim == 2 else 8
         self.grid = ti.root.pointer(indices, grid_size // grid_block_size)

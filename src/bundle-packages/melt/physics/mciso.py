@@ -22,7 +22,7 @@ class MCISO:
         self.g = ti.Vector.field(self.dim, float)
         self.Jtab = ti.field(int)
 
-        grid_size = 4096
+        grid_size = 1024
         grid_block_size = 128
         leaf_block_size = 8
         self.offset = (-grid_size // 2,) * self.dim
