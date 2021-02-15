@@ -1,0 +1,5 @@
+numpy
+pytest
+taichi
+gltflib
+pillow
