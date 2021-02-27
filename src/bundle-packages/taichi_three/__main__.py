@@ -1,6 +1,4 @@
-import taichi as ti
-import numpy as np
-import tina
+from .common import *
 import sys
 
 ti.init(ti.gpu)

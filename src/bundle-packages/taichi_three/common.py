@@ -107,4 +107,4 @@ def lerp(fac, src, dst):
     return src * (1 - fac) + dst * fac
 
 
-import tina
+import taichi_three as tina
