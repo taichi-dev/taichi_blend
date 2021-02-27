@@ -1,12 +1,16 @@
-from tina.allocator import *
+'''
+triangle mesh model storage in Taichi memory
+'''
+
 from tina.geometries import *
+from tina.mtllib import *
 
 
 @ti.data_oriented
 class ModelPool(metaclass=Singleton):
     is_taichi_class = True
 
-    def __init__(self, size=2**20):
+    def __init__(self, size=2**22):  # 100 MB
         self.nfaces = ti.field(int, ())
         self.vertices = ti.field(float, size * 8 * 3)
         self.mtlids = ti.field(int, size)
@@ -74,9 +78,24 @@ class ModelPool(metaclass=Singleton):
 
         assert arr.shape[0] % 3 == 0
         if mtlids is None:
-            mtlids = np.zeros(arr.shape[0] // 3, dtype=np.int32)
+            mtlids = -np.ones(arr.shape[0] // 3, dtype=np.int32)
         else:
             assert mtlids.shape[0] == arr.shape[0] // 3
         assert mtlids.shape[0] < self.mtlids.shape[0], 'too many faces'
 
         self.from_numpy(arr, mtlids)
+
+    @ti.func
+    def get_geometries(self, hit, r):
+        face = self.get_face(hit.index)
+        normal = face.normal(hit)
+        #normal = face.true_normal()
+        texcoord = face.texcoord(hit)
+        hitpos = r.o + hit.depth * r.d
+
+        sign = -r.d.dot(normal)
+        if sign < 0:
+            normal = -normal
+
+        material = MaterialPool().get(face.mtlid, texcoord)
+        return hitpos, normal, sign, material

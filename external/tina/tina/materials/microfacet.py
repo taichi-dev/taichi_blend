@@ -1,3 +1,7 @@
+'''
+implementing functions of the microfacet theory
+'''
+
 from tina.common import *
 
 
@@ -42,6 +46,17 @@ def smithGGX(cosi, alpha):
     a = alpha**2
     b = cosi**2
     return 1 / (cosi + ti.sqrt(a + b - a * b))
+
+
+# http://www.pbr-book.org/3ed-2018/Reflection_Models/Microfacet_Models.html#eq:beckmann-lambda
+@ti.func
+def smithLambda(cosi, alpha):
+    tani = ti.sqrt(abs((1 - cosi**2) / cosi**2))
+    a = 1 / (alpha * tani)
+    ret = 0.0
+    if a < 1.6:
+        ret = (1 - 1.259 * a + 0.396 * a**2) / (3.535 * a + 2.181 * a*82)
+    return ret
 
 
 @ti.func

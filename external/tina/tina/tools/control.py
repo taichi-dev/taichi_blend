@@ -1,10 +1,14 @@
+'''
+camera control using Taichi GUI events (resulting in a 4x4 perspective matrix)
+'''
+
 from tina.common import *
 
 
-print('[Tina] Hint: MMB to orbit, Shift+MMB to pan, wheel to zoom')
+print('[TinaGUI] Hint: MMB to orbit, Shift+MMB to pan, wheel to zoom')
 
 
-class Control:
+class CamControl:
     def __init__(self, gui, fov=60, is_ortho=False, blendish=True):
         self.gui = gui
         self.center = np.array([0, 0, 0], dtype=float)
@@ -122,6 +126,9 @@ class Control:
             if e.key == self.gui.TAB:
                 self.is_ortho = not self.is_ortho
                 return True
+
+            if e.key == '`':
+                print('np.' + repr(self.get_perspective()))
 
             elif e.key == self.gui.ESCAPE:
                 self.gui.running = False

@@ -1,3 +1,7 @@
+'''
+loading OBJ models
+'''
+
 import numpy as np
 
 

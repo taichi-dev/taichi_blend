@@ -1,0 +1,4 @@
+[cornell]
+Cycles_CPU = 15.35
+Cycles_GPU = 12.06
+Tina_GPU = 4.37

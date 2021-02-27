@@ -1,3 +1,7 @@
+'''
+4x4 numpy matrix utilities, see also control.py
+'''
+
 from tina.common import *
 
 

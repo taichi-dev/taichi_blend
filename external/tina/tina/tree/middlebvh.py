@@ -1,10 +1,14 @@
+'''
+middle-point-split BVH tree implementation
+'''
+
 from tina.model import *
 from tina.geometries import *
 from tina.stack import *
 
 
 @ti.data_oriented
-class _BVHTree:
+class MiddleBVH:
     def __init__(self, size):
         self.size = size
         self.dir = ti.field(int, size)
@@ -21,10 +25,10 @@ class _BVHTree:
         data.min = self.min.to_numpy()
         data.max = self.max.to_numpy()
         data.ind = self.ind.to_numpy()
-        print('[Tina] building tree...')
+        print('[TinaBVH] building middle-BVH tree...')
         self._build(data, pmin, pmax, np.arange(len(pmin)), 1)
         self._build_from_data(data.dir, data.min, data.max, data.ind)
-        print('[Tina] building tree done')
+        print('[TinaBVH] building middle-BVH tree done')
 
     @ti.kernel
     def _build_from_data(self,
@@ -109,8 +113,7 @@ class _BVHTree:
                 self.process_leaf(ret, curr, ray, avoid)
                 continue
 
-            hit_box = self.getbox(curr).intersect(ray).hit != 0
-            if not hit_box:
+            if self.getbox(curr).intersect(ray).hit == 0:
                 continue
 
             ntimes += 1
@@ -164,7 +167,7 @@ class _BVHTree:
 @ti.data_oriented
 class BVHTree(metaclass=Singleton):
     def __init__(self, size=2**20):
-        self.core = _BVHTree(size)
+        self.core = MiddleBVH(size)
 
     @ti.kernel
     def _dump_face_bboxes(self, nfaces: int, pmin: ti.ext_arr(), pmax: ti.ext_arr()):

@@ -3,3 +3,4 @@ pytest
 taichi
 gltflib
 pillow
+pysobol

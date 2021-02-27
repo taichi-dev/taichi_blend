@@ -1,9 +1,14 @@
-from tina.common import *
+'''
+dynamic memory allocator, mainly used for textures
+'''
 
 
 class MemoryAllocator:
     def __init__(self, size):
         self.size = size
+        self.reset()
+
+    def reset(self):
         self.free_chunk = [(0, self.size)]
         self.used_chunk = []
 
@@ -37,10 +42,15 @@ class MemoryAllocator:
 class IdAllocator:
     def __init__(self, count):
         self.count = count
+        self.reset()
+
+    def reset(self):
         self.water = 0
 
     def malloc(self):
         id = self.water
+        if id >= self.count:
+            raise RuntimeError('Out of ID!')
         self.water += 1
         return id
 

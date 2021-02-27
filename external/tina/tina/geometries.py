@@ -1,3 +1,7 @@
+'''
+ray tracing utilities, computing intersection with different kind of geometries
+'''
+
 from tina.common import *
 
 
@@ -40,6 +44,33 @@ class Box(namespace):
                     hit = 0
 
         return namespace(hit=hit, near=near, far=far)
+
+
+@ti.data_oriented
+class Area(namespace):
+    @ti.func
+    def __init__(self, pos, dirx, diry):
+        self.pos = pos
+        self.dirx = dirx
+        self.diry = diry
+
+    @ti.func
+    def intersect(self, ray):
+        t = inf
+        u, v = 0., 0.
+        hit = 0
+
+        nrm = self.dirx.cross(self.diry).normalized()
+        NoD = nrm.dot(ray.d)
+        if NoD > eps:
+            t = nrm.dot(self.pos - ray.o) / NoD
+            hitdisp = ray.o + t * ray.d - self.pos
+            u = hitdisp.dot(self.dirx) / self.dirx.norm_sqr()
+            v = hitdisp.dot(self.diry) / self.diry.norm_sqr()
+            if -1 < u < 1 and -1 < v < 1:
+                hit = 1
+
+        return namespace(hit=hit, depth=t, uv=V(u, v))
 
 
 @ti.data_oriented
@@ -124,21 +155,25 @@ class Sphere(namespace):
         self.pos = pos
         self.rad2 = rad2
 
-    @multireturn
     @ti.func
     def intersect(self, ray):
-        yield 0.0
+        ret = 0.0
 
         op = self.pos - ray.o
         b = op.dot(ray.d)
         det = b * b + self.rad2 - op.norm_sqr()
         if det < 0:
-            yield 0.0
-        det = ti.sqrt(det)
-        t = b - det
-        if t > eps:
-            yield t
-        t = b + det
-        if t > eps:
-            yield t
-        yield 0.0
+            ret = 0.0
+        else:
+            det = ti.sqrt(det)
+            t = b - det
+            if t > eps:
+                ret = t
+            else:
+                t = b + det
+                if t > eps:
+                    ret = t
+                else:
+                    ret = 0.0
+
+        return ret

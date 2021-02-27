@@ -1,6 +1,7 @@
-/three
 /build
 /assets
-__pycache__
-/sobol*
+/outputs
+/scripts
+__pycache__/
+/dummy_worker.py
 /tags

@@ -1,3 +1,9 @@
+'''
+Disney BSDF (with transmission support)
+
+references: https://github.com/wdas/brdf/blob/main/src/brdfs/disney.brdf
+'''
+
 from tina.materials import *
 from tina.materials.microfacet import *
 
@@ -8,7 +14,7 @@ class Disney(namespace):
     def __init__(self,
             basecolor=V3(1.0),
             metallic=0.0,
-            roughness=1.0,
+            roughness=0.4,
             specular=0.5,
             specularTint=0.4,
             subsurface=0.0,
@@ -115,9 +121,12 @@ class Disney(namespace):
             etao = 1.0
         eta = etai / etao
 
+        cosi = indir.dot(normal)
+        Fi = schlickFresnel(cosi)
+        Fs = lerp(Fi, self.speccolor, V3(1))
+
         choice = Choice(samp.z)
-        specrate = lerp(self.transmission, lerp(self.metallic, 
-            self.specular * 0.08, 1.0), 1.0)
+        specrate = lerp(self.transmission, lerp(self.metallic, Vavg(Fs), 1.0), 1.0)
         coatrate = 0.04 * self.clearcoat
 
         specrate = lerp(specrate, 0.1, 1.0)
@@ -136,25 +145,28 @@ class Disney(namespace):
             if cosoh > 0:
                 Dr = GTR1(cosh, alpha)
                 Foh = schlickFresnel(cosoh)
-                Gr = smithGGX(cosi, 0.25) * smithGGX(coso, 0.25)
                 Fr = lerp(Foh, 0.04, 1.0)
 
                 result.outdir = outdir
-                partial = self.clearcoat * Gr * Fr * coso * cosi
+                partial = self.clearcoat * Fr * coso / cosoh
                 result.pdf = Dr * partial
                 result.color = partial / choice.pdf
-                result.impo = 1
+
+            else:
+                result.pdf = 0.0
+                result.color = V3(0.0)
 
         elif choice(specrate):
             alpha = self.alpha
             halfdir = tanspace(normal) @ sample_GTR2(samp.x, samp.y, alpha)
+            #halfdir = tanspace(normal) @ sample_GTR2_vnor(indir, samp.x, samp.y, alpha)
             outdir = reflect(-indir, halfdir)
 
             cosi = dot_or_zero(indir, normal)
             coso = dot_or_zero(outdir, normal)
             cosh = dot_or_zero(halfdir, normal)
             cosoh = dot_or_zero(halfdir, outdir)
-            if cosoh > 0 and coso > 0:
+            if cosoh > 0 and coso > 0 and cosh > 0:
                 Ds = GTR2(cosh, alpha)
 
                 if choice(self.transmission):
@@ -166,7 +178,6 @@ class Disney(namespace):
                         result.pdf = Ds * fdf
                         result.color = self.basecolor * \
                                 fdf * self.transmission / choice.pdf
-                        result.impo = 1
 
                     else:
                         has_r, outdir = refract(-indir, halfdir, eta)
@@ -175,19 +186,20 @@ class Disney(namespace):
                             result.pdf = Ds * (1 - fdf)
                             result.color = self.basecolor * (1 - fdf) \
                                     * self.transmission / choice.pdf
-                            result.impo = 1
 
                 else:
                     Foh = schlickFresnel(cosoh)
                     Fs = lerp(Foh, self.speccolor, V3(1.0))
-                    Gs = smithGGX(cosi, alpha) * smithGGX(coso, alpha)
 
                     result.outdir = outdir
-                    partial = Gs * 2 * coso * lerp(alpha, 2 * cosi, 1.0)
+                    partial = 0.5 / (cosoh * smithGGX(coso, alpha))
                     result.pdf = Ds * Vavg(Fs) * partial
                     result.color = Fs * partial \
                             * (1 - self.transmission) / choice.pdf
-                    result.impo = 1
+
+            else:
+                result.pdf = 0.0
+                result.color = V3(0.0)
 
         else:
             outdir = tanspace(normal) @ spherical(ti.sqrt(samp.x), samp.y)
@@ -217,6 +229,5 @@ class Disney(namespace):
             result.pdf = 1 / ti.pi
             result.color = diffuse * ti.pi * \
                     (1 - self.metallic) * (1 - self.transmission) / choice.pdf
-            result.impo = 1
 
         return result

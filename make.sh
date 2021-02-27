@@ -10,6 +10,7 @@ mkdir -p build
 rm -rf build/Taichi-Blend
 cp -r src build/Taichi-Blend
 mkdir -p build/Taichi-Blend/bundle-packages
+cp -r external/tina/tina build/Taichi-Blend/bundle-packages
 pip install --python-version $PYVERSION --platform $PIPPLAT --no-deps -r requirements.txt -t build/Taichi-Blend/bundle-packages
 rm -rf build/Taichi-Blend/bundle-packages/include
 rm -rf build/Taichi-Blend/bundle-packages/*.dist-info

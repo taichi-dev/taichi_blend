@@ -1,3 +1,7 @@
+'''
+thread-local array with the power of ti.asm (only works in OpenGL and CC backend)
+'''
+
 from tina.common import *
 
 

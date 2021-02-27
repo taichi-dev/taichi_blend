@@ -17,32 +17,32 @@ class TaichiWorkerPanel(bpy.types.Panel):
         layout.prop(scene, 'taichi_backend')
 
 
-import tina
-registered_addons = [tina]
+addon_names = ['meltblend', 'realtimetina', 'tina']
+registered_addons = {}
 
 
-def on_addon_update(name):
-    def callback(self, context=None):
+def on_addon_update(self, context=None):
+    for name in addon_names:
         enable = getattr(self, name)
-        module = __import__(name)
         if enable:
-            module.register()
-            registered_addons.append(module)
+            if name not in registered_addons:
+                module = __import__(name)
+                module.register()
+                registered_addons[name] = module
         else:
-            try:
-                module.unregister()
-            except Exception:
-                import traceback
-                print(traceback.format_exc())
-            registered_addons.remove(module)
-
-    return callback
+            if name in registered_addons:
+                module = registered_addons.pop(name)
+                try:
+                    module.unregister()
+                except Exception:
+                    import traceback
+                    print(traceback.format_exc())
 
 
 class TaichiAddonsProperties(bpy.types.PropertyGroup):
-    meltblend: bpy.props.BoolProperty(name='Taichi Blend Physics', default=False, update=on_addon_update('meltblend'))
-    realtimetina: bpy.props.BoolProperty(name='Real-time Tina', default=False, update=on_addon_update('realtimetina'))
-    tina: bpy.props.BoolProperty(name='Tina Path Tracer', default=True, update=on_addon_update('tina'))
+    meltblend: bpy.props.BoolProperty(name='Taichi Blend Physics', default=False, update=on_addon_update)
+    realtimetina: bpy.props.BoolProperty(name='Real-time Tina', default=False, update=on_addon_update)
+    tina: bpy.props.BoolProperty(name='Tina Path Tracer', default=True, update=on_addon_update)
 
 
 class TaichiAddonsPanel(bpy.types.Panel):

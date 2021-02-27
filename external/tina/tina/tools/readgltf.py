@@ -1,3 +1,7 @@
+'''
+loading GLTF scenes based on gltflib
+'''
+
 from tina.common import *
 from tina.tools import matrix
 from base64 import b64decode
@@ -70,6 +74,9 @@ def readgltf(path):
             'VEC2': '2',
             'VEC3': '3',
             'VEC4': '4',
+            'MAT2': '4',
+            'MAT3': '9',
+            'MAT4': '16',
         }
 
         buffer = bufferViews[accessor.bufferView]
@@ -114,18 +121,22 @@ def readgltf(path):
         r = pbr.roughnessFactor
         mrt = pbr.metallicRoughnessTexture
         if bt is not None:
-            bt = images[bt.index]
-        if mrt is not None:
-            mrt = images[mrt.index]
-            mt = mrt[:, :, 2]
-            rt = mrt[:, :, 1]
+            bt = bt.index
         else:
-            mt = rt = None
-        return b, bt, m, mt, r, rt
+            bt = -1
+        if mrt is not None:
+            assert False, 'metallicRoughness texture not supported'
+            #mrt = images[mrt.index]
+            #mt = mrt[:, :, 2]
+            #rt = mrt[:, :, 1]
+        else:
+            mt = rt = -1
+        return (b, bt), (m, mt), (r, rt)
 
 
-    for material in model.materials:
-        materials.append(process_material(material))
+    if model.materials is not None:
+        for material in model.materials:
+            materials.append(process_material(material))
 
 
     def process_primitive(prim, world):
@@ -196,6 +207,9 @@ def readgltf(path):
         if t is None:
             t = np.zeros((p.shape[0], 2))
 
+        if m is None:
+            m = -1
+
         p = p.astype(np.float64)[f]
         n = n.astype(np.float64)[f]
         t = t.astype(np.float64)[f]
@@ -223,7 +237,7 @@ def readgltf(path):
     mtlids = np.concatenate(mtlids, axis=0)
 
     print('[TinaGLTF] loaded', len(mtlids), 'triangles')
-    return vertices, mtlids, materials
+    return vertices, mtlids, materials, images
 
 
 if __name__ == '__main__':
