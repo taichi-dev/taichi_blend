@@ -19,14 +19,15 @@ bl_info = {
 
 
 import sys
-sys.path.insert(0, '/home/bate/Develop/cristaichi_blend')
+sys.path.insert(0, '/home/bate/Develop/blender_taichi')
+sys.path.insert(0, '/home/bate/Develop/blender_taichi/external/tina')
 
 
 registered = False
 
 
 def register():
-    print('Taichi-BlendDev register...')
+    print('Taichi-Blend-Dev register...')
     import taichi_blend
     taichi_blend.register()
 
@@ -36,7 +37,7 @@ def register():
 
 
 def unregister():
-    print('Taichi-BlendDev unregister...')
+    print('Taichi-Blend-Dev unregister...')
     import taichi_blend
     taichi_blend.unregister()
 

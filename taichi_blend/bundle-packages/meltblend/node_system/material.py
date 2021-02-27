@@ -25,15 +25,15 @@ def get_sockets_def(node_system):
 
 
 def get_nodes_def(node_system):
-    import tina.melty
-    return tina.melty.A.nodes
+    import realtimetina.melty
+    return realtimetina.melty.A.nodes
 
 
 def register_callback(node_system):
-    import tina
-    tina.register()
+    import realtimetina
+    realtimetina.register()
 
 
 def unregister_callback(node_system):
-    import tina
-    tina.unregister()
+    import realtimetina
+    realtimetina.unregister()

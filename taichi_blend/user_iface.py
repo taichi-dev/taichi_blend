@@ -13,36 +13,56 @@ class TaichiWorkerPanel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         scene = context.scene
+        worker = scene.taichi_worker
 
-        layout.prop(scene, 'taichi_backend')
+        layout.prop(worker, 'backend')
+        if worker.backend in {'CUDA', 'GPU'}:
+            layout.prop(worker, 'memory_fraction')
 
 
 addon_names = ['meltblend', 'realtimetina', 'tina']
 registered_addons = {}
 
 
-def on_addon_update(self, context=None):
-    for name in addon_names:
-        enable = getattr(self, name)
-        if enable:
+def addons_get(name):
+    def wrapped(self):
+        return name in registered_addons
+
+    return wrapped
+
+
+def addons_set(name):
+    def wrapped(self, value):
+        if value:
             if name not in registered_addons:
+                print('Taichi-Blend: register addon', name)
                 module = __import__(name)
                 module.register()
                 registered_addons[name] = module
         else:
             if name in registered_addons:
-                module = registered_addons.pop(name)
+                print('Taichi-Blend: unregister addon', name)
+                module = registered_addons[name]
+                del registered_addons[name]
                 try:
                     module.unregister()
                 except Exception:
                     import traceback
                     print(traceback.format_exc())
 
+    return wrapped
+
 
 class TaichiAddonsProperties(bpy.types.PropertyGroup):
-    meltblend: bpy.props.BoolProperty(name='Taichi Blend Physics', default=False, update=on_addon_update)
-    realtimetina: bpy.props.BoolProperty(name='Real-time Tina', default=False, update=on_addon_update)
-    tina: bpy.props.BoolProperty(name='Tina Path Tracer', default=True, update=on_addon_update)
+    @classmethod
+    def initialize(cls):
+        cls.__annotations__ = {}
+        for name in addon_names:
+            prop = bpy.props.BoolProperty(name=name,
+                    get=addons_get(name), set=addons_set(name))
+            cls.__annotations__[name] = prop
+
+TaichiAddonsProperties.initialize()
 
 
 class TaichiAddonsPanel(bpy.types.Panel):
@@ -59,13 +79,22 @@ class TaichiAddonsPanel(bpy.types.Panel):
         scene = context.scene
         addons = scene.taichi_addons
 
-        layout.prop(addons, 'tina')
-        layout.prop(addons, 'meltblend')
-        layout.prop(addons, 'realtimetina')
+        for name in addon_names:
+            layout.prop(addons, name)
+
+
+class TaichiWorkerProperties(bpy.types.PropertyGroup):
+    backend: bpy.props.EnumProperty(name='Backend',
+        items=[(item.upper(), item, '') for item in [
+            'CPU', 'GPU', 'CUDA', 'OpenGL', 'Metal', 'CC',
+            ]], default='CUDA')
+    memory_fraction: bpy.props.IntProperty(name='Memory Fraction',
+            min=0, max=100, default=80, subtype='PERCENTAGE')
 
 
 classes = [
         TaichiAddonsProperties,
+        TaichiWorkerProperties,
         TaichiWorkerPanel,
         TaichiAddonsPanel,
 ]
@@ -77,21 +106,13 @@ def register():
 
     bpy.types.Scene.taichi_addons = bpy.props.PointerProperty(
             name='taichi_addons', type=TaichiAddonsProperties)
-    bpy.types.Scene.taichi_backend = bpy.props.EnumProperty(name='Backend',
-        items=[(item.upper(), item, '') for item in [
-            'CPU', 'GPU', 'CUDA', 'OpenGL', 'Metal', 'CC',
-            ]], default='CUDA')
-
-    for mod in registered_addons:
-        mod.register()
+    bpy.types.Scene.taichi_worker = bpy.props.PointerProperty(
+            name='taichi_worker', type=TaichiWorkerProperties)
 
 
 def unregister():
-    del bpy.types.Scene.taichi_backend
+    del bpy.types.Scene.taichi_worker
     del bpy.types.Scene.taichi_addons
 
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
-
-    for mod in reversed(registered_addons):
-        mod.unregister()

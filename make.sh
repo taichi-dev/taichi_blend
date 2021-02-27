@@ -8,7 +8,7 @@ esac
 
 mkdir -p build
 rm -rf build/Taichi-Blend
-cp -r src build/Taichi-Blend
+cp -r taichi_blend build/Taichi-Blend
 mkdir -p build/Taichi-Blend/bundle-packages
 cp -r external/tina/tina build/Taichi-Blend/bundle-packages
 pip install --python-version $PYVERSION --platform $PIPPLAT --no-deps -r requirements.txt -t build/Taichi-Blend/bundle-packages
