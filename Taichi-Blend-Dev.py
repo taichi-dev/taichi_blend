@@ -5,7 +5,7 @@ import os
 
 bl_info = {
         'name': 'Taichi Blend (dev mode)',
-        'description': 'Taichi Blender intergration for creating physic-based animations',
+        'description': 'Taichi Blender intergration',
         'author': 'Taichi Developers',
         'version': (0, 0, 0),
         'blender': (2, 81, 0),
@@ -18,71 +18,57 @@ bl_info = {
 }
 
 
-#repo_path = 'C:/Users/Administrator/taichi_blend'
-repo_path = '/home/bate/Develop/blender_taichi'
-src_path = os.path.join(repo_path, 'src/__init__.py')
-bundle_path = os.path.join(repo_path, 'src/bundle-packages')
-assert os.path.exists(src_path), f'{src_path} does not exist!'
-assert os.path.exists(bundle_path), f'{bundle_path} does not exist!'
+import sys
+sys.path.insert(0, '/home/bate/Develop/cristaichi_blend')
 
 
-taichi_blend = None
+registered = False
+
 
 def register():
-    print('Taichi-Blend repo at', repo_path)
-    if bundle_path not in sys.path:
-        sys.path.insert(0, bundle_path)
-
-    global taichi_blend
-    taichi_blend = imp.load_source('Taichi-Blend', src_path)
+    print('Taichi-BlendDev register...')
+    import taichi_blend
     taichi_blend.register()
+
+    global registered
+    registered = True
+    print('...register done')
 
 
 def unregister():
-    if build_path in sys.path:
-        sys.path.remove(build_path)
-    if bundle_path in sys.path:
-        sys.path.remove(bundle_path)
-
-    global taichi_blend
+    print('Taichi-BlendDev unregister...')
+    import taichi_blend
     taichi_blend.unregister()
-    taichi_blend = None
+
+    global registered
+    registered = False
+    print('...unregister done')
 
 
-def reload():
-    import tina
-    if taichi_blend is not None:
-        unregister()
-    reload_package(tina)
-    register()
+def reload_addon():
+    if registered:
+        import taichi_blend
+        taichi_blend.unregister()
+        del taichi_blend
+    mods_to_del = []
+    for k in sys.modules:
+        if k.startswith('taichi_blend.') or k == 'taichi_blend':
+            mods_to_del.append(k)
+    for k in mods_to_del:
+        sys.modules.pop(k)
+    import taichi_blend
+    taichi_blend.register()
 
-    import bpy
-    bpy.context.scene.frame_current = bpy.context.scene.frame_current
 
-__import__('bpy').a = reload
+@eval('lambda x: x()')
+def _():
+    class Reload:
+        def __repr__(self):
+            import os
+            import bpy
+            os.system('clear')
+            reload_addon()
+            bpy.context.scene.frame_current = bpy.context.scene.frame_current
+            return 'reloaded'
 
-# https://stackoverflow.com/questions/28101895/reloading-packages-and-their-submodules-recursively-in-python
-def reload_package(package):
-    import os
-    import types
-    import importlib
-
-    assert(hasattr(package, "__package__"))
-    fn = package.__file__
-    fn_dir = os.path.dirname(fn) + os.sep
-    module_visit = {fn}
-    del fn
-
-    def reload_recursive_ex(module):
-        importlib.reload(module)
-
-        for module_child in vars(module).values():
-            if isinstance(module_child, types.ModuleType):
-                fn_child = getattr(module_child, "__file__", None)
-                if (fn_child is not None) and fn_child.startswith(fn_dir):
-                    if fn_child not in module_visit:
-                        # print("reloading:", fn_child, "from", module)
-                        module_visit.add(fn_child)
-                        reload_recursive_ex(module_child)
-
-    reload_recursive_ex(package)
+    __import__('bpy').a = Reload()

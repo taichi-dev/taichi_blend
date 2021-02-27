@@ -44,7 +44,7 @@ def register():
     bpy.types.Scene.taichi_stdout_text = bpy.props.StringProperty()
     bpy.types.Scene.taichi_use_backend = bpy.props.EnumProperty(name='Backend',
         items=[(item.upper(), item, '') for item in [
-            'CPU', 'GPU', 'CUDA', 'OpenCL', 'OpenGL', 'Metal', 'CC',
+            'CPU', 'GPU', 'CUDA', 'OpenGL', 'Metal', 'CC',
             ]])
 
     bpy.utils.register_class(TaichiBlendApplyOperator)
