@@ -6,7 +6,7 @@ import os
 bl_info = {
         'name': 'Taichi Blend (dev mode)',
         'description': 'Taichi Blender intergration',
-        'author': 'Taichi Developers',
+        'author': 'archibate <1931127624@qq.com>',
         'version': (0, 0, 0),
         'blender': (2, 81, 0),
         'location': 'Scripting module',

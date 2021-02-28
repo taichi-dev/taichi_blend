@@ -1,7 +1,7 @@
 bl_info = {
         'name': 'Taichi Blend',
         'description': 'Taichi Blender intergration',
-        'author': 'Taichi Developers',
+        'author': 'archibate <1931127624@qq.com>',
         'version': (0, 0, 7),
         'blender': (2, 81, 0),
         'location': 'Scripting module',
@@ -12,20 +12,16 @@ bl_info = {
 }
 
 
-import sys
-import os
+from . import package_bundle, user_iface
 
-
-bundle_path = os.path.join(os.path.dirname(__file__), 'bundle-packages')
+modules = [package_bundle, user_iface]
 
 
 def register():
-    print('Taichi-Blend package bundle at', bundle_path)
-    assert os.path.exists(bundle_path), f'{bundle_path} does not exist!'
-    if bundle_path not in sys.path:
-        sys.path.insert(0, bundle_path)
+    for module in modules:
+        module.register()
 
 
 def unregister():
-    if bundle_path in sys.path:
-        sys.path.remove(bundle_path)
+    for module in reversed(modules):
+        module.unregister()
