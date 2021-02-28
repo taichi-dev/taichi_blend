@@ -4,7 +4,7 @@ Taichi Blend
 Taichi Blender intergration for creating physic-based animations.
 
 
-Examples: https://github.com/taichi-dev/taichi_blend/tree/master/examples.
+Examples: https://github.com/taichi-dev/taichi_blend/tree/master/numblend_examples.
 
 Taichi repo: https://github.com/taichi-dev/taichi.
 
