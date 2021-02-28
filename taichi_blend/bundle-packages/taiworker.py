@@ -87,7 +87,6 @@ def get_initializer(scene=None):
         for k, v in extra_kwargs.items():
             final_kwargs[k] = v
         ti.init(*extra_args, **final_kwargs)
-        return ti
 
     return initializer
 
