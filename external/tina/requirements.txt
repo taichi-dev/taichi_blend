@@ -1,6 +1,0 @@
-numpy
-pytest
-taichi
-gltflib
-pillow
-pysobol
