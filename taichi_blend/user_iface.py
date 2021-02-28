@@ -89,13 +89,13 @@ class TaichiWorkerProperties(bpy.types.PropertyGroup):
             'CPU', 'GPU', 'CUDA', 'OpenGL', 'Metal', 'CC',
             ]], default='CUDA')
     memory_fraction: bpy.props.IntProperty(name='Memory Fraction',
-            min=0, max=100, default=80, subtype='PERCENTAGE')
+            min=0, max=100, default=0, subtype='PERCENTAGE')
 
 
 classes = [
         TaichiAddonsProperties,
-        TaichiWorkerProperties,
-        TaichiWorkerPanel,
+        #TaichiWorkerProperties,
+        #TaichiWorkerPanel,
         TaichiAddonsPanel,
 ]
 
@@ -106,13 +106,18 @@ def register():
 
     bpy.types.Scene.taichi_addons = bpy.props.PointerProperty(
             name='taichi_addons', type=TaichiAddonsProperties)
-    bpy.types.Scene.taichi_worker = bpy.props.PointerProperty(
-            name='taichi_worker', type=TaichiWorkerProperties)
+    #bpy.types.Scene.taichi_worker = bpy.props.PointerProperty(
+    #        name='taichi_worker', type=TaichiWorkerProperties)
+
+    addons_set('tina')(None, True)
 
 
 def unregister():
-    del bpy.types.Scene.taichi_worker
+    #del bpy.types.Scene.taichi_worker
     del bpy.types.Scene.taichi_addons
+
+    for name in addon_names:
+        addons_set(name)(None, False)
 
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
