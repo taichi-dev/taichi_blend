@@ -16,9 +16,13 @@ class TaichiWorkerPanel(bpy.types.Panel):
         worker = scene.taichi_worker
 
         layout.prop(worker, 'backend')
-        if worker.backend in {'CUDA', 'GPU'}:
-            layout.prop(worker, 'memory_fraction')
-            layout.prop(worker, 'memory_GB')
+        layout.prop(worker, 'memory_fraction')
+        layout.prop(worker, 'memory_GB')
+        layout.prop(worker, 'unified_memory')
+        layout.prop(worker, 'block_local')
+        layout.prop(worker, 'cpu_threads')
+        layout.prop(worker, 'int_precision')
+        layout.prop(worker, 'float_precision')
 
 
 class TaichiWorkerProperties(bpy.types.PropertyGroup):
@@ -26,24 +30,66 @@ class TaichiWorkerProperties(bpy.types.PropertyGroup):
         items=[(item.upper(), item, '') for item in [
             'CPU', 'GPU', 'CUDA', 'OpenGL', 'Metal', 'CC',
             ]], default='CUDA')
-    memory_fraction: bpy.props.IntProperty(name='Memory Fraction',
+    cpu_threads: bpy.props.IntProperty(name='CPU Threads', min=0, default=0)
+    memory_fraction: bpy.props.IntProperty(name='CUDA Memory Fraction',
             min=0, max=100, default=0, subtype='PERCENTAGE')
-    memory_GB: bpy.props.FloatProperty(name='Memory GB',
-            min=0, default=1.5, subtype='UNSIGNED', precision=1)
+    memory_GB: bpy.props.FloatProperty(name='CUDA Memory GB',
+            min=0, default=1.5, subtype='UNSIGNED', precision=2)
+    unified_memory: bpy.props.BoolProperty(name='CUDA Unified Memory',
+            default=True)
+    block_local: bpy.props.BoolProperty(name='CUDA Block local',
+            default=True)
+    backend: bpy.props.EnumProperty(name='Backend',
+        items=[(item.upper(), item, '') for item in [
+            'CPU', 'GPU', 'CUDA', 'OpenGL', 'Metal', 'CC',
+            ]], default='GPU')
+    int_precision: bpy.props.EnumProperty(name='Integer Precision',
+            items=[(item.upper(), item, '') for item in [
+                'Auto', 'Int32', 'Int64']], default='AUTO')
+    float_precision: bpy.props.EnumProperty(name='Float Precision',
+            items=[(item.upper(), item, '') for item in [
+                'Auto', 'Float32', 'Float64']], default='AUTO')
 
 
-def get_arguments(scene=None):
+def get_initializer(scene=None):
     if scene is None:
         scene = bpy.context.scene
     options = scene.taichi_worker
 
     kwargs = {}
+    exkwargs = {}
 
-    kwargs['arch'] = getattr(ti, options.backend.lower())
-    if scene.memory_fraction > 0:
+    exkwargs['arch'] = options.backend.lower()
+    if options.cpu_threads > 0:
+        kwargs['cpu_max_num_threads'] = options.cpu_threads
+    if options.memory_fraction > 0:
         kwargs['device_memory_fraction'] = options.memory_fraction / 100
-    elif scene.memory_GB > 0:
+    elif options.memory_GB > 0:
         kwargs['device_memory_GB'] = options.memory_GB
+    if not options.unified_memory:
+        kwargs['use_unified_memory'] = False
+    if not options.block_local:
+        kwargs['make_block_local'] = False
+    if options.int_precision != 'AUTO':
+        exkwargs['default_ip'] = {
+                'INT32': 'i32', 'INT64': 'i64'}[options.int_precision]
+    if options.float_precision != 'AUTO':
+        exkwargs['default_fp'] = {
+                'FLOAT32': 'f32', 'FLOAT64': 'f64'}[options.float_precision]
+
+    def initializer(*extra_args, **extra_kwargs):
+        import taichi as ti
+        final_kwargs = {}
+        for k, v in kwargs.items():
+            final_kwargs[k] = v
+        for k, v in exkwargs.items():
+            final_kwargs[k] = getattr(ti, v)
+        for k, v in extra_kwargs.items():
+            final_kwargs[k] = v
+        ti.init(*extra_args, **final_kwargs)
+        return ti
+
+    return initializer
 
 
 classes = [

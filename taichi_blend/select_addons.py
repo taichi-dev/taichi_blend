@@ -79,9 +79,6 @@ def register():
 
     addons_set('tina')(None, True)
 
-    import taiworker
-    taiworker.register()
-
 
 def unregister():
     del bpy.types.Scene.taichi_addons
@@ -91,6 +88,3 @@ def unregister():
 
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
-
-    import taiworker
-    taiworker.unregister()

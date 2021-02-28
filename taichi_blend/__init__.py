@@ -12,9 +12,9 @@ bl_info = {
 }
 
 
-from . import package_bundle, select_addons
+from . import package_bundle, select_addons, taichi_worker
 
-modules = [package_bundle, select_addons]
+modules = [package_bundle, select_addons, taichi_worker]
 
 
 def register():

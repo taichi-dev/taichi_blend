@@ -18,9 +18,10 @@ bl_info = {
 }
 
 
-import sys
-sys.path.insert(0, '/home/bate/Develop/blender_taichi')
-sys.path.insert(0, '/home/bate/Develop/blender_taichi/external/tina')
+repo_path = '/home/bate/Develop/blender_taichi'
+
+sys.path.insert(0, repo_path)
+sys.path.insert(0, os.path.join(repo_path, 'external/tina'))
 
 
 registered = False
@@ -52,9 +53,11 @@ def reload_addon():
         taichi_blend.unregister()
         del taichi_blend
     mods_to_del = []
-    for k in sys.modules:
-        if k.startswith('taichi_blend.') or k == 'taichi_blend':
-            mods_to_del.append(k)
+    for k, v in sys.modules.items():
+        if hasattr(v, '__file__') and v.__file__ is not None:
+            if v.__file__.startswith(repo_path):
+                print('reloading', k)
+                mods_to_del.append(k)
     for k in mods_to_del:
         sys.modules.pop(k)
     import taichi_blend
