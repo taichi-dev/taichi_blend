@@ -19,24 +19,13 @@ import os
 bundle_path = os.path.join(os.path.dirname(__file__), 'bundle-packages')
 
 
-from . import user_iface
-
-modules = [user_iface]
-
-
 def register():
     print('Taichi-Blend package bundle at', bundle_path)
     assert os.path.exists(bundle_path), f'{bundle_path} does not exist!'
     if bundle_path not in sys.path:
         sys.path.insert(0, bundle_path)
 
-    for module in modules:
-        module.register()
-
 
 def unregister():
-    for module in reversed(modules):
-        module.unregister()
-
     if bundle_path in sys.path:
         sys.path.remove(bundle_path)
