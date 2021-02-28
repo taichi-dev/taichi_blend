@@ -12,9 +12,9 @@ bl_info = {
 }
 
 
-from . import package_bundle, user_iface
+from . import package_bundle, select_addons
 
-modules = [package_bundle, user_iface]
+modules = [package_bundle, select_addons]
 
 
 def register():

@@ -64,57 +64,10 @@ class TaichiAddonsPanel(bpy.types.Panel):
             layout.prop(addons, name)
 
 
-class TaichiWorkerPanel(bpy.types.Panel):
-    '''Taichi worker options'''
-
-    bl_label = 'Taichi Worker'
-    bl_idname = 'SCENE_PT_taichi_worker'
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_context = 'scene'
-
-    def draw(self, context):
-        layout = self.layout
-        scene = context.scene
-        worker = scene.taichi_worker
-
-        layout.prop(worker, 'backend')
-        if worker.backend in {'CUDA', 'GPU'}:
-            layout.prop(worker, 'memory_fraction')
-            layout.prop(worker, 'memory_GB')
-
-
-class TaichiWorkerProperties(bpy.types.PropertyGroup):
-    backend: bpy.props.EnumProperty(name='Backend',
-        items=[(item.upper(), item, '') for item in [
-            'CPU', 'GPU', 'CUDA', 'OpenGL', 'Metal', 'CC',
-            ]], default='CUDA')
-    memory_fraction: bpy.props.IntProperty(name='Memory Fraction',
-            min=0, max=100, default=0, subtype='PERCENTAGE')
-    memory_GB: bpy.props.FloatProperty(name='Memory GB',
-            min=0, default=1.5, subtype='UNSIGNED', precision=1)
-
-
 classes = [
         TaichiAddonsProperties,
-        TaichiWorkerProperties,
-        TaichiWorkerPanel,
         TaichiAddonsPanel,
 ]
-
-
-def get_arguments(scene=None):
-    if scene is None:
-        scene = bpy.context.scene
-    options = scene.taichi_worker
-
-    kwargs = {}
-
-    kwargs['arch'] = getattr(ti, options.backend.lower())
-    if scene.memory_fraction > 0:
-        kwargs['device_memory_fraction'] = options.memory_fraction / 100
-    elif scene.memory_GB > 0:
-        kwargs['device_memory_GB'] = options.memory_GB
 
 
 def register():
@@ -123,14 +76,14 @@ def register():
 
     bpy.types.Scene.taichi_addons = bpy.props.PointerProperty(
             name='taichi_addons', type=TaichiAddonsProperties)
-    bpy.types.Scene.taichi_worker = bpy.props.PointerProperty(
-            name='taichi_worker', type=TaichiWorkerProperties)
 
-    #addons_set('tina')(None, True)
+    addons_set('tina')(None, True)
+
+    import taiworker
+    taiworker.register()
 
 
 def unregister():
-    del bpy.types.Scene.taichi_worker
     del bpy.types.Scene.taichi_addons
 
     for name in addon_names:
@@ -138,3 +91,6 @@ def unregister():
 
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
+
+    import taiworker
+    taiworker.unregister()
