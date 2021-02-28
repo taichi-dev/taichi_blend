@@ -18,6 +18,7 @@ rm -rf build/Taichi-Blend/bundle-packages/*.egg-info
 rm -rf build/Taichi-Blend/bundle-packages/__pycache__
 rm -rf build/Taichi-Blend/bundle-packages/*/__pycache__
 rm -rf build/Taichi-Blend/bundle-packages/*/*/__pycache__
+rm -rf build/Taichi-Blend/bundle-packages/*/*/*/__pycache__
 rm -rf build/Taichi-Blend/bundle-packages/bin
 rm -f build/Taichi-Blend.zip
 cd build
