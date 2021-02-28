@@ -107,9 +107,13 @@ Included packages
 Installing this bundle (``Taichi-Blend.zip``) will allows you to use these packages:
 
 * ``numblend`` - utilities to interface Blender with NumPy and create animations `[source] <https://github.com/taichi-dev/taichi_blend/tree/master/src/bundle-packages/numblend`_
-* ``melt`` - a node system for building physics engine based on Taichi `[source] <https://github.com/taichi-dev/taichi_blend/tree/master/src/bundle-packages/melt`_
-* ``tina`` - a real-time rasterization soft renderer based on Taichi `[source] <https://github.com/taichi-dev/taichi_blend/tree/master/src/bundle-packages/tina`_
 * ``taichi`` - the Taichi programming langurage `[repo] <https://github.com/taichi-dev/taichi>`_ `[doc] <https://taichi.readthedocs.io/en/stable>`_
 * ``taichi_glsl`` - some handy helper functions for Taichi `[repo] <https://github.com/taichi-dev/taichi_glsl>`_ `[doc] <https://taichi-glsl.readthedocs.io>`_
 * ``taichi_elements`` - a high-performance MPM solver written in Taichi `[repo] <https://github.com/taichi-dev/taichi_elements>`_ `[doc] <https://taichi-elements.readthedocs.io>`_
 * ``taichi_three`` - a extensible soft rendering pipeline based on Taichi `[repo] <https://github.com/taichi-dev/taichi_three>`_ `[doc] <https://t3.142857.red>`_
+
+And these submodules as extra addons:
+
+* ``meltblend`` - a node-based MPM solver for continuum physics simulation.
+* ``realtimetina`` - a real-time rasterization-based renderer `[repo] <https://github.com/taichi-dev/taichi_three>`_.
+* ``tina`` - an GPU-accelerated path tracing renderer.
