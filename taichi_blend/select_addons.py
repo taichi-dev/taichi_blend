@@ -1,7 +1,7 @@
 import bpy
 
 
-addon_names = ['meltblend', 'realtimetina', 'tina']
+addon_names = ['meltblend', 'realtimetina', 'ptina']
 registered_addons = {}
 
 
@@ -77,7 +77,7 @@ def register():
     bpy.types.Scene.taichi_addons = bpy.props.PointerProperty(
             name='taichi_addons', type=TaichiAddonsProperties)
 
-    addons_set('tina')(None, True)
+    addons_set('ptina')(None, True)
 
 
 def unregister():
