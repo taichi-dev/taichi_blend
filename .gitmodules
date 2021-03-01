@@ -1,3 +1,3 @@
-[submodule "tina"]
-        path = external/tina
-        url = https://gitee.com/archibate/tina.git
+[submodule "external/ptina"]
+	path = external/ptina
+	url = https://gitee.com/archibate/ptina.git

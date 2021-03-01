@@ -21,7 +21,7 @@ bl_info = {
 repo_path = '/home/bate/Develop/blender_taichi'
 
 sys.path.insert(0, repo_path)
-sys.path.insert(0, os.path.join(repo_path, 'external/tina'))
+sys.path.insert(0, os.path.join(repo_path, 'external/ptina'))
 
 
 registered = False

@@ -116,4 +116,4 @@ And these submodules as extra addons:
 
 * ``meltblend`` - a node-based MPM solver for continuum physics simulation.
 * ``realtimetina`` - a real-time rasterization-based renderer `[repo] <https://github.com/taichi-dev/taichi_three>`_.
-* ``tina`` - an GPU-accelerated path tracing renderer.
+* ``ptina`` - an GPU-accelerated path tracing renderer.
