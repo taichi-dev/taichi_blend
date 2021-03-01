@@ -1,7 +1,7 @@
 astor
 colorama
 pybind11>=2.5.0
-sourceinspect>=0.0.4
+sourceinspect==0.0.4
 taichi
 taichi_glsl
 taichi_three
